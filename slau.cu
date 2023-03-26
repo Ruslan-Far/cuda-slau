@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <math.h>
-#define N 2
-#define SIZE N * N
+#include "slau.h"
 
 __constant__ int const_n;
 
@@ -99,29 +96,6 @@ __global__ void search_minor_matrix(double *a, double *sub_a, int *minor)
 	}
 	printf("Матрица миноров\n");
 	print_matrix(minor, N);
-}
-
-int get_n()
-{
-	int k;
-
-	k = 1;
-	for (int i = 1; i < SIZE; i += k)
-	{
-		k += 2;
-	}
-	return sqrt(SIZE - k);
-}
-
-void check_cuda_error(const char *msg)
-{
-    cudaError_t err = cudaGetLastError();
-
-    if (cudaSuccess != err)
-	{
-		fprintf(stderr, "Cuda error: %s: %s.\n", msg, cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-    }
 }
 
 int	main()
