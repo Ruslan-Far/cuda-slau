@@ -3,6 +3,8 @@
 #define N 2
 #define SIZE N * N
 
+__constant__ int const_n;
+
 __device__ void print_matrix(double *a, int n)
 {
 	for (int i = 0; i < n; i++)
@@ -10,6 +12,18 @@ __device__ void print_matrix(double *a, int n)
 		for (int j = 0; j < n; j++)
 		{
 			printf("%f ", a[n * i + j]);
+		}
+		printf("\n");
+	}
+}
+
+__device__ void print_matrix(int *a, int n)
+{
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < n; j++)
+		{
+			printf("%d ", a[n * i + j]);
 		}
 		printf("\n");
 	}
@@ -38,6 +52,8 @@ __device__ int get_det(double *a, int n)
 
 	if (n == 0)
 		n = N;
+	else
+		n = const_n;
 	transform_matrix(a, n);
 	print_matrix(a, n);
 	det = 1;
@@ -45,10 +61,47 @@ __device__ int get_det(double *a, int n)
 	{
 		det *= a[n * i + i];
 	}
+	printf("det = %d\n", (int) round(det));
 	return ((int) round(det));
 }
 
-__device__ int get_n()
+__device__ void init_sub_a(double *a, double *sub_a, int r, int c)
+{
+	int idx_sub_a;
+
+	idx_sub_a = 0;
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			if (i == r || j == c)
+				continue;
+			sub_a[idx_sub_a++] = a[N * i + j];
+		}
+	}
+}
+
+__global__ void search_det(double *a, int *det)
+{
+	*det = get_det(a, 0);
+	// printf("const_n = %d\n", const_n);
+}
+
+__global__ void search_minor_matrix(double *a, double *sub_a, int *minor)
+{
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			init_sub_a(a, sub_a, i, j);
+			minor[N * i + j] = get_det(sub_a, 1);
+		}
+	}
+	printf("Матрица миноров\n");
+	print_matrix(minor, N);
+}
+
+int get_n()
 {
 	int k;
 
@@ -57,36 +110,7 @@ __device__ int get_n()
 	{
 		k += 2;
 	}
-	printf("__fsqrt_rn(SIZE - k) = %d\n", (int) __fsqrt_rn(SIZE - k));
-	return __fsqrt_rn(SIZE - k);
-}
-
-__device__ void init_sub_a(double *a, double *sub_a, int i, int j)
-{
-
-}
-
-__global__ void search_det(double *a, int *det)
-{
-	*det = get_det(a, 0);
-}
-
-__global__ void search_minor_matrix(double *a, int *minor)
-{
-	double *sub_a;
-	int n;
-
-	n = get_n();
-	cudaMalloc(&sub_a, sizeof(double) * SIZE);
-	for (int i = 0; i < N; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			init_sub_a(a, sub_a, i, j);
-			minor[N * i + j] = get_det(sub_a, n);
-		}
-	}
-	cudaFree(sub_a);
+	return sqrt(SIZE - k);
 }
 
 void check_cuda_error(const char *msg)
@@ -113,27 +137,33 @@ int	main()
 	double *dev_sub_a;
 	int *dev_det;
 	int *dev_minor;
+	int host_n;
 	int	int_size;
 	int double_size;
 
 	int_size = sizeof(int);
 	double_size = sizeof(double);
 	host_minor = (int *) malloc(int_size * SIZE);
+	host_n = get_n();
 	cudaMalloc(&dev_a, double_size * SIZE);
-	cudaMalloc(&dev_sub_a, double_size * SIZE);
+	cudaMalloc(&dev_sub_a, double_size * host_n);
 	cudaMalloc(&dev_det, int_size);
 	cudaMalloc(&dev_minor, int_size * SIZE);
 
+	cudaMemcpyToSymbol(const_n, &host_n, int_size, 0, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
+
 	search_det<<<1, 1>>>(dev_a, dev_det);
 	cudaMemcpy(&host_det, dev_det, int_size, cudaMemcpyDeviceToHost);
 	printf("Определитель матрицы А = %d\n", host_det);
-	// cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
-	// search_minor_matrix<<<1, 1>>>(dev_a, dev_minor);
+	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
+	search_minor_matrix<<<1, 1>>>(dev_a, dev_sub_a, dev_minor);
 
 	free(host_minor);
 	cudaFree(dev_a);
+	cudaFree(dev_sub_a);
 	cudaFree(dev_det);
+	cudaFree(dev_minor);
 
 	check_cuda_error("");
 	return 0;
