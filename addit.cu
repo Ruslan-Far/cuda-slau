@@ -22,3 +22,15 @@ void check_cuda_error(const char *msg)
 		exit(EXIT_FAILURE);
     }
 }
+
+void host_print_matrix(int *a)
+{
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			printf("%d ", a[N * i + j]);
+		}
+		printf("\n");
+	}
+}

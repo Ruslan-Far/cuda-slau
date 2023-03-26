@@ -9,5 +9,6 @@
 
 int		get_n();
 void	check_cuda_error(const char *msg);
+void	host_print_matrix(int *a);
 
 #endif
