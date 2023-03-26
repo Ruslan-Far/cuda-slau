@@ -2,86 +2,16 @@
 
 __constant__ int const_n;
 
-__device__ void print_matrix(double *a, int n)
+__device__ int def_n(int n)
 {
-	for (int i = 0; i < n; i++)
-	{
-		for (int j = 0; j < n; j++)
-		{
-			printf("%f ", a[n * i + j]);
-		}
-		printf("\n");
-	}
-}
-
-__device__ void print_matrix(int *a)
-{
-	for (int i = 0; i < N; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			printf("%d ", a[N * i + j]);
-		}
-		printf("\n");
-	}
-}
-
-__device__ void transform_matrix(double *a, int n)
-{
-	double divider;
-
-	for (int k = 0; k < n - 1; k++)
-	{
-		for (int i = k; i < n - 1; i++)
-		{
-			divider = a[n * (i + 1) + k] / a[n * k + k];
-			for (int j = 0; j < n; j++)
-			{
-				a[n * (i + 1) + k + j] -= divider * a[n * k + k + j];
-			}
-		}
-	}
-}
-
-__device__ int get_det(double *a, int n)
-{
-	double det;
-
 	if (n == 0)
-		n = N;
-	else
-		n = const_n;
-	transform_matrix(a, n);
-	// print_matrix(a, n);
-	det = 1;
-	for (int i = 0; i < n; i++)
-	{
-		det *= a[n * i + i];
-	}
-	// printf("det = %d\n", (int) round(det));
-	return ((int) round(det));
-}
-
-__device__ void init_sub_a(double *a, double *sub_a, int r, int c)
-{
-	int idx_sub_a;
-
-	idx_sub_a = 0;
-	for (int i = 0; i < N; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			if (i == r || j == c)
-				continue;
-			sub_a[idx_sub_a++] = a[N * i + j];
-		}
-	}
+		return N;
+	return const_n;
 }
 
 __global__ void search_det(double *a, int *det)
 {
 	*det = get_det(a, 0);
-	// printf("const_n = %d\n", const_n);
 }
 
 __global__ void search_minor_algaddit_matrix(double *a, double *sub_a, int *minor_algaddit)

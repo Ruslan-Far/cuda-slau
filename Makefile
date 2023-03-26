@@ -1,6 +1,6 @@
 NAME		=	slau
 
-SRC			=	slau.cu addit.cu
+SRC			=	slau.cu addit.cu prints.cu det_minor.cu
 
 HEADER		=	slau.h
 
@@ -17,7 +17,7 @@ ${NAME}	:		${OBJ}
 	${CC} -o ${NAME} ${OBJ}
 
 %.o		:		%.cu ${HEADER}
-	${CC} -c $< -o $@
+	${CC} -dc $< -o $@
 
 clean	:		
 	${RM} ${OBJ}
