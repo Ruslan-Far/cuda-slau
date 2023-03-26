@@ -3,6 +3,7 @@
 
 # define N 2
 # define SIZE N * N
+# define BLOCK_N 16
 
 # include <stdio.h>
 # include <math.h>
@@ -11,6 +12,7 @@ __device__ int def_n(int n);
 
 void	check_cuda_error(const char *msg);
 
+void	host_print_matrix(double *a);
 void	host_print_matrix(int *a);
 __device__ void print_matrix(double *a, int n);
 __device__ void print_matrix(int *a);

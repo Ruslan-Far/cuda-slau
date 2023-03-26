@@ -35,6 +35,40 @@ __global__ void search_minor_algaddit_matrix(double *a, double *sub_a, int *mino
 	}
 }
 
+__global__ void transpose_matrix(int *a, double *at)
+{
+	int a_idx = N * (blockDim.y * blockIdx.y + threadIdx.y) + blockDim.x * blockIdx.x + threadIdx.x;
+	if (a_idx >= SIZE)
+	{
+		printf("a_idx = %d\n", a_idx);
+		return;
+	}
+	int at_idx = N * (blockDim.x * blockIdx.x + threadIdx.x) + blockDim.y * blockIdx.y + threadIdx.y;
+	if (at_idx >= SIZE)
+	{
+		printf("at_idx = %d\n", at_idx);
+		return;
+	}
+	at[at_idx] = a[a_idx];
+}
+
+void init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock)
+{
+	if (N <= BLOCK_N)
+	{
+		*blocksPerGrid = dim3(1);
+		*threadsPerBlock = dim3(N, N);
+	}
+	else
+	{
+		if (N % BLOCK_N == 0)
+			*blocksPerGrid = dim3(N / BLOCK_N, N / BLOCK_N);
+		else
+			*blocksPerGrid = dim3(N / BLOCK_N + 1, N / BLOCK_N + 1);
+		*threadsPerBlock = dim3(BLOCK_N, BLOCK_N);
+	}
+}
+
 int	main()
 {
 	double  host_a[SIZE] = {2, 3, 4, 1};
@@ -51,11 +85,17 @@ int	main()
 	int host_n;
 	int	int_size;
 	int double_size;
+	dim3 blocksPerGrid;
+	dim3 threadsPerBlock;
 
 	int_size = sizeof(int);
 	double_size = sizeof(double);
 	host_n = get_n();
 	host_minor_algaddit = (int *) malloc(int_size * SIZE);
+	// blocksPerGrid = dim3(N / BLOCK_N + 1, N / BLOCK_N + 1);
+	// threadsPerBlock = dim3(BLOCK_N, BLOCK_N);
+	init_dim3(&blocksPerGrid, &threadsPerBlock);
+
 	cudaMalloc(&dev_a, double_size * SIZE);
 	cudaMalloc(&dev_sub_a, double_size * host_n);
 	cudaMalloc(&dev_det, int_size);
@@ -66,12 +106,16 @@ int	main()
 
 	search_det<<<1, 1>>>(dev_a, dev_det);
 	cudaMemcpy(&host_det, dev_det, int_size, cudaMemcpyDeviceToHost);
-	printf("Определитель матрицы А = %d\n", host_det);
+	printf("Определитель матрицы = %d\n", host_det);
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
 	search_minor_algaddit_matrix<<<1, 1>>>(dev_a, dev_sub_a, dev_minor_algaddit);
 	cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
 	printf("Матрица алгебраических дополнений\n");
 	host_print_matrix(host_minor_algaddit);
+	transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
+	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
+	printf("Транспонированная матрица\n");
+	host_print_matrix(host_a);
 
 	free(host_minor_algaddit);
 	cudaFree(dev_a);
@@ -80,5 +124,6 @@ int	main()
 	cudaFree(dev_minor_algaddit);
 
 	check_cuda_error("");
+
 	return 0;
 }
