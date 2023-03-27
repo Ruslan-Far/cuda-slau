@@ -70,14 +70,18 @@ __global__ void get_inverse_matrix(double *a, int *det)
 __global__ void mult_matrix_to_vector(double *a, int *b, double *x)
 {
 	int i0 = N * (blockDim.y * blockIdx.y + threadIdx.y);
-	int j0 = blockDim.x * blockIdx.x + threadIdx.x;
+	if (i0 >= SIZE)
+	{
+		// printf("blockDim.y = %d; blockIdx.y = %d; threadIdx.y = %d\n", blockDim.y, blockIdx.y, threadIdx.y);
+		return;
+	}
 	double sum = 0;
 
 	for (int k = 0; k < N; k++)
 	{
-		sum += a[i0 + k] * b[k * 1 + j0];
+		sum += a[i0 + k] * b[k];
 	}
-	int idx = 1 * (blockDim.y * blockIdx.y + threadIdx.y) + blockDim.x * blockIdx.x + threadIdx.x;
+	int idx = blockDim.y * blockIdx.y + threadIdx.y;
 	x[idx] = sum;
 }
 
@@ -100,12 +104,13 @@ void init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock)
 
 int	main()
 {
-	double  host_a[SIZE] = {2, 3, 4, 1};
+	// double  host_a[SIZE] = {2, 3, 4, 1};
 	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9};
-	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82};
+	double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82};
 	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1};
-	int host_b[N] = {8, 6};
+	// int host_b[N] = {8, 6};
 	// int host_b[N] = {8, 6, 17};
+	int host_b[N] = {8, 6, 17, 7};
 	double *host_x;
 	int *host_minor_algaddit;
 	int host_det;
@@ -158,7 +163,8 @@ int	main()
 	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
 	printf("Обратная матрица\n");
 	host_print_matrix(host_a);
-	mult_matrix_to_vector<<<1, dim3(1, N)>>>(dev_a, dev_b, dev_x);
+	// mult_matrix_to_vector<<<1, dim3(1, N)>>>(dev_a, dev_b, dev_x);
+	mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
 	cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
 	printf("Ответ\n");
 	host_print_vector(host_x);

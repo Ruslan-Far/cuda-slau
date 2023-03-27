@@ -1,9 +1,9 @@
 #ifndef SLAU_H
 # define SLAU_H
 
-# define N 2
+# define N 4
 # define SIZE N * N
-# define BLOCK_N 16
+# define BLOCK_N 3
 
 # include <stdio.h>
 # include <math.h>
