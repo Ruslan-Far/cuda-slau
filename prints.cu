@@ -6,7 +6,7 @@ void host_print_matrix(double *a)
 	{
 		for (int j = 0; j < N; j++)
 		{
-			printf("%d ", (int) a[N * i + j]);
+			printf("%f ", a[N * i + j]);
 		}
 		printf("\n");
 	}
