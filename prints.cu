@@ -24,6 +24,15 @@ void host_print_matrix(int *a)
 	}
 }
 
+void host_print_vector(double *a)
+{
+	for (int i = 0; i < N; i++)
+	{
+		printf("%f ", a[i]);
+	}
+	printf("\n");
+}
+
 __device__ void print_matrix(double *a, int n)
 {
 	for (int i = 0; i < n; i++)

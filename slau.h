@@ -1,9 +1,9 @@
 #ifndef SLAU_H
 # define SLAU_H
 
-# define N 3
+# define N 2
 # define SIZE N * N
-# define BLOCK_N 4
+# define BLOCK_N 16
 
 # include <stdio.h>
 # include <math.h>
@@ -14,6 +14,7 @@ void	check_cuda_error(const char *msg);
 
 void	host_print_matrix(double *a);
 void	host_print_matrix(int *a);
+void	host_print_vector(double *a);
 __device__ void print_matrix(double *a, int n);
 __device__ void print_matrix(int *a);
 

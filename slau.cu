@@ -63,7 +63,22 @@ __global__ void get_inverse_matrix(double *a, int *det)
 	if (idx2 >= SIZE)
 		return;
 	// a[N * threadIdx.y + threadIdx.x] /= *det;
+	// printf("idx = %d\n", idx);
 	a[idx2] /= *det;
+}
+
+__global__ void mult_matrix_to_vector(double *a, int *b, double *x)
+{
+	int i0 = N * (blockDim.y * blockIdx.y + threadIdx.y);
+	int j0 = blockDim.x * blockIdx.x + threadIdx.x;
+	double sum = 0;
+
+	for (int k = 0; k < N; k++)
+	{
+		sum += a[i0 + k] * b[k * 1 + j0];
+	}
+	int idx = 1 * (blockDim.y * blockIdx.y + threadIdx.y) + blockDim.x * blockIdx.x + threadIdx.x;
+	x[idx] = sum;
 }
 
 void init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock)
@@ -85,15 +100,19 @@ void init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock)
 
 int	main()
 {
-	// double  host_a[SIZE] = {2, 3, 4, 1};
-	double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9};
+	double  host_a[SIZE] = {2, 3, 4, 1};
+	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9};
 	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82};
 	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1};
-	// int host_b[N] = {8, 6};
+	int host_b[N] = {8, 6};
+	// int host_b[N] = {8, 6, 17};
+	double *host_x;
 	int *host_minor_algaddit;
 	int host_det;
 	double *dev_a;
 	double *dev_sub_a;
+	int *dev_b;
+	double *dev_x;
 	int *dev_det;
 	int *dev_minor_algaddit;
 	int host_n;
@@ -105,6 +124,7 @@ int	main()
 	int_size = sizeof(int);
 	double_size = sizeof(double);
 	host_n = get_n();
+	host_x = (double *) malloc(double_size * N);
 	host_minor_algaddit = (int *) malloc(int_size * SIZE);
 	// blocksPerGrid = dim3(2, 2);
 	// threadsPerBlock = dim3(BLOCK_N, BLOCK_N);
@@ -112,11 +132,14 @@ int	main()
 
 	cudaMalloc(&dev_a, double_size * SIZE);
 	cudaMalloc(&dev_sub_a, double_size * host_n);
+	cudaMalloc(&dev_b, int_size * N);
+	cudaMalloc(&dev_x, double_size * N);
 	cudaMalloc(&dev_det, int_size);
 	cudaMalloc(&dev_minor_algaddit, int_size * SIZE);
 
 	cudaMemcpyToSymbol(const_n, &host_n, int_size, 0, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
 
 	search_det<<<1, 1>>>(dev_a, dev_det);
 	cudaMemcpy(&host_det, dev_det, int_size, cudaMemcpyDeviceToHost);
@@ -135,10 +158,17 @@ int	main()
 	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
 	printf("Обратная матрица\n");
 	host_print_matrix(host_a);
+	mult_matrix_to_vector<<<1, dim3(1, N)>>>(dev_a, dev_b, dev_x);
+	cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
+	printf("Ответ\n");
+	host_print_vector(host_x);
 
+	free(host_x);
 	free(host_minor_algaddit);
 	cudaFree(dev_a);
 	cudaFree(dev_sub_a);
+	cudaFree(dev_b);
+	cudaFree(dev_x);
 	cudaFree(dev_det);
 	cudaFree(dev_minor_algaddit);
 
