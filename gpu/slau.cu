@@ -9,11 +9,80 @@ __device__ int def_n(int n)
 	return const_n;
 }
 
+__device__ void transform_matrix(double *a, int n)
+{
+	double divider;
+
+	for (int k = 0; k < n - 1; k++)
+	{
+		for (int i = k; i < n - 1; i++)
+		{
+			if (a[n * k + k] == 0)
+				break;
+			divider = a[n * (i + 1) + k] / a[n * k + k];
+			for (int j = 0; j < n; j++)
+			{
+				a[n * (i + 1) + k + j] -= divider * a[n * k + k + j];
+			}
+		}
+	}
+}
+
+__device__ int get_det(double *a, int n)
+{
+	double det;
+
+	n = def_n(n);
+	// printf("n = %d\n", n);
+	transform_matrix(a, n);
+	// dev_print_matrix(a, n);
+	det = 1;
+	for (int i = 0; i < n; i++)
+	{
+		det *= a[n * i + i];
+	}
+	// printf("dev_det = %d\n", (int) round(det));
+	return ((int) round(det));
+}
+
 __global__ void search_det(double *a, int *det)
 {
-	// printf("search_det\n");
-	// dev_print_matrix(a, N);
-	*det = get_det(a, 0);
+	// *det = get_det(a, 0);
+
+
+
+	__shared__ double divider;
+
+	for (int k = 0; k < N - 1; k++)
+	{
+		if (threadIdx.x == k && blockIdx.x + k < N - 1)
+		{
+			if (blockIdx.x == 0 && a[N * threadIdx.x + threadIdx.x] == 0)
+			{
+				printf("Невозможно решить данную СЛАУ, так как определитель = 0\n");
+				*det = 0;
+				return;
+			}
+			__syncthreads();
+			if (*det == 0)
+				return;
+			divider = a[N * (blockIdx.x + threadIdx.x + 1) + threadIdx.x] / a[N * threadIdx.x + threadIdx.x];
+		}
+		__syncthreads();
+		if (blockIdx.x + k < N - 1)
+			a[N * (blockIdx.x + k + 1) + threadIdx.x] -= divider * a[N * k + threadIdx.x];
+		__syncthreads();
+	}
+
+	if (blockIdx.x == 0 && threadIdx.x == 0)
+	{
+		for (int i = 0; i < N; i++)
+		{
+			*det *= a[N * i + i];
+		}
+		*det = (int) (*det);
+	}
+	
 }
 
 __global__ void search_minor_algaddit_matrix(double *a, double *sub_a, int *minor_algaddit)
@@ -91,13 +160,13 @@ int	main()
 {
 	// double  host_a[SIZE] = {2, 3, 4, 1};
 	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9};
-	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82};
+	double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82};
 	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1};
 	// int host_b[N] = {8, 6};
 	// int host_b[N] = {8, 6, 17};
-	// int host_b[N] = {8, 6, 17, 7};
-	double *host_a;
-	int *host_b;
+	int host_b[N] = {8, 6, 17, 7};
+	// double *host_a;
+	// int *host_b;
 	double *host_x;
 	int *host_minor_algaddit;
 	int host_det;
@@ -115,16 +184,17 @@ int	main()
 
 	int_size = sizeof(int);
 	double_size = sizeof(double);
-	host_a = (double *) malloc(double_size * SIZE);
-	host_b = (int *) malloc(int_size * N);
-	host_init_a(host_a);
-	host_init_b(host_b);
+	// host_a = (double *) malloc(double_size * SIZE);
+	// host_b = (int *) malloc(int_size * N);
+	// host_init_a(host_a);
+	// host_init_b(host_b);
 	host_print_matrix(host_a);
 	host_print_vector(host_b);
 
 	host_n = host_get_n();
 	host_x = (double *) malloc(double_size * N);
 	host_minor_algaddit = (int *) malloc(int_size * SIZE);
+	host_det = 1;
 	host_init_dim3(&blocksPerGrid, &threadsPerBlock);
 
 	cudaMalloc(&dev_a, double_size * SIZE);
@@ -137,35 +207,37 @@ int	main()
 	cudaMemcpyToSymbol(const_n, &host_n, int_size, 0, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_det, &host_det, int_size, cudaMemcpyHostToDevice);
 
-	search_det<<<1, 1>>>(dev_a, dev_det);
+	search_det<<<3, 4>>>(dev_a, dev_det);
+	// search_det<<<1, 1>>>(dev_a, dev_det);
 	cudaMemcpy(&host_det, dev_det, int_size, cudaMemcpyDeviceToHost);
 	printf("Определитель матрицы = %d\n", host_det);
-	if (host_det != 0)
-	{
-		cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
-		search_minor_algaddit_matrix<<<1, 1>>>(dev_a, dev_sub_a, dev_minor_algaddit);
-		cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
-		printf("Матрица алгебраических дополнений\n");
-		host_print_matrix(host_minor_algaddit);
-		transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
-		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
-		printf("Транспонированная матрица\n");
-		host_print_matrix(host_a);
-		get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
-		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
-		printf("Обратная матрица\n");
-		host_print_matrix(host_a);
-		mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
-		cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
-		printf("Ответ\n");
-		host_print_vector(host_x);
-	}
-	else
-		printf("Невозможно решить данную СЛАУ\n");
+	// if (host_det != 0)
+	// {
+	// 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
+	// 	search_minor_algaddit_matrix<<<1, 1>>>(dev_a, dev_sub_a, dev_minor_algaddit);
+	// 	cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
+	// 	printf("Матрица алгебраических дополнений\n");
+	// 	host_print_matrix(host_minor_algaddit);
+	// 	transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
+	// 	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
+	// 	printf("Транспонированная матрица\n");
+	// 	host_print_matrix(host_a);
+	// 	get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
+	// 	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
+	// 	printf("Обратная матрица\n");
+	// 	host_print_matrix(host_a);
+	// 	mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
+	// 	cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
+	// 	printf("Ответ\n");
+	// 	host_print_vector(host_x);
+	// }
+	// else
+	// 	printf("Невозможно решить данную СЛАУ\n");
 
-	free(host_a);
-	free(host_b);
+	// free(host_a);
+	// free(host_b);
 	free(host_x);
 	free(host_minor_algaddit);
 	cudaFree(dev_a);
