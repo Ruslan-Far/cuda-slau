@@ -1,17 +1,5 @@
 #include "slau.h"
 
-int get_n()
-{
-	int k;
-
-	k = 1;
-	for (int i = 1; i < SIZE; i += k)
-	{
-		k += 2;
-	}
-	return sqrt(SIZE - k);
-}
-
 __device__ void transform_matrix(double *a, int n)
 {
 	double divider;
@@ -34,14 +22,15 @@ __device__ int get_det(double *a, int n)
 	double det;
 
 	n = def_n(n);
+	printf("n = %d\n", n);
 	transform_matrix(a, n);
-	// print_matrix(a, n);
+	dev_print_matrix(a, n);
 	det = 1;
 	for (int i = 0; i < n; i++)
 	{
 		det *= a[n * i + i];
 	}
-	// printf("det = %d\n", (int) round(det));
+	printf("dev_det = %d\n", (int) round(det));
 	return ((int) round(det));
 }
 

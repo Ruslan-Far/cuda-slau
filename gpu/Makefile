@@ -1,6 +1,6 @@
 NAME		=	slau
 
-SRC			=	slau.cu addit.cu prints.cu det_minor.cu
+SRC			=	slau.cu host_funcs.cu host_prints.cu dev_prints.cu det_minor.cu
 
 HEADER		=	slau.h
 
