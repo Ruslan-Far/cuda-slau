@@ -11,8 +11,8 @@ __device__ int def_n(int n)
 
 __global__ void search_det(double *a, int *det)
 {
-	printf("search_det\n");
-	dev_print_matrix(a, N);
+	// printf("search_det\n");
+	// dev_print_matrix(a, N);
 	*det = get_det(a, 0);
 }
 
@@ -141,23 +141,28 @@ int	main()
 	search_det<<<1, 1>>>(dev_a, dev_det);
 	cudaMemcpy(&host_det, dev_det, int_size, cudaMemcpyDeviceToHost);
 	printf("Определитель матрицы = %d\n", host_det);
-	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
-	search_minor_algaddit_matrix<<<1, 1>>>(dev_a, dev_sub_a, dev_minor_algaddit);
-	cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
-	printf("Матрица алгебраических дополнений\n");
-	host_print_matrix(host_minor_algaddit);
-	transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
-	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
-	printf("Транспонированная матрица\n");
-	host_print_matrix(host_a);
-	get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
-	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
-	printf("Обратная матрица\n");
-	host_print_matrix(host_a);
-	mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
-	cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
-	printf("Ответ\n");
-	host_print_vector(host_x);
+	if (host_det != 0)
+	{
+		cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
+		search_minor_algaddit_matrix<<<1, 1>>>(dev_a, dev_sub_a, dev_minor_algaddit);
+		cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
+		printf("Матрица алгебраических дополнений\n");
+		host_print_matrix(host_minor_algaddit);
+		transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
+		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
+		printf("Транспонированная матрица\n");
+		host_print_matrix(host_a);
+		get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
+		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
+		printf("Обратная матрица\n");
+		host_print_matrix(host_a);
+		mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
+		cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
+		printf("Ответ\n");
+		host_print_vector(host_x);
+	}
+	else
+		printf("Невозможно решить данную СЛАУ\n");
 
 	free(host_a);
 	free(host_b);

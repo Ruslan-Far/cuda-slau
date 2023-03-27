@@ -44,7 +44,9 @@ void host_init_a(double *a)
 {
 	for (int i = 0; i < SIZE; i++)
 	{
-		a[i] = i + 1;
+		a[i] = rand();
+		if (a[i] > 100000)
+			a[i] = round(a[i] / 100000000);
 	}
 }
 
