@@ -9,45 +9,8 @@ __device__ int def_n(int n)
 	// return const_n;
 }
 
-// __device__ void transform_matrix(double *a, int n)
-// {
-// 	double divider;
-
-// 	for (int k = 0; k < n - 1; k++)
-// 	{
-// 		for (int i = k; i < n - 1; i++)
-// 		{
-// 			if (a[n * k + k] == 0)
-// 				break;
-// 			divider = a[n * (i + 1) + k] / a[n * k + k];
-// 			for (int j = 0; j < n; j++)
-// 			{
-// 				a[n * (i + 1) + k + j] -= divider * a[n * k + k + j];
-// 			}
-// 		}
-// 	}
-// }
-
-// __device__ int get_det(double *a, int n)
-// {
-// 	double det;
-
-// 	n = def_n(n);
-// 	// printf("n = %d\n", n);
-// 	transform_matrix(a, n);
-// 	// dev_print_matrix(a, n);
-// 	det = 1;
-// 	for (int i = 0; i < n; i++)
-// 	{
-// 		det *= a[n * i + i];
-// 	}
-// 	// printf("dev_det = %d\n", (int) round(det));
-// 	return ((int) round(det));
-// }
-
 __global__ void search_det(double *a, double *det)
 {
-	// *det = get_det(a, 0);
 	__shared__ double divider;
 
 	for (int k = 0; k < N - 1; k++)
@@ -81,23 +44,6 @@ __global__ void search_det(double *a, double *det)
 
 __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 {
-	// for (int i = 0; i < N; i++)
-	// {
-	// 	for (int j = 0; j < N; j++)
-	// 	{
-	// 		init_sub_a(a, sub_a, i, j);
-	// 		minor_algaddit[N * i + j] = get_det(sub_a, 1);
-	// 	}
-	// }
-	// printf("Матрица миноров\n");
-	// dev_print_matrix(minor_algaddit);
-	// for (int i = 0; i < N; i++)
-	// {
-	// 	for (int j = 0; j < N; j++)
-	// 	{
-	// 		minor_algaddit[N * i + j] *= pow(-1, i + j);
-	// 	}
-	// }
 	__shared__ double sub_a[(N - 1) * (N - 1)];
 	__shared__ double divider;
 	__shared__ double det;
@@ -116,18 +62,19 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 	if (threadIdx.x == N - 1 && threadIdx.y != 0)
 		return;
 	__syncthreads();
+	det = 1;
 	for (int k = 0; k < (N - 1) - 1; k++)
 	{
 		if (threadIdx.x == k)
 		{
-			// if (blockIdx.x == 0 && a[(N - 1) * threadIdx.x + threadIdx.x] == 0)
-			// {
-			// 	*det = 0;
-			// 	return;
-			// }
-			// __syncthreads();
-			// if (*det == 0)
-			// 	return;
+			if (sub_a[(N - 1) * threadIdx.x + threadIdx.x] == 0)
+			{
+				det = 0;
+				break;
+			}
+			__syncthreads();
+			if (det == 0)
+				break;
 			divider = sub_a[(N - 1) * (threadIdx.x + 1) + threadIdx.x] / sub_a[(N - 1) * threadIdx.x + threadIdx.x];
 		}
 		__syncthreads();
@@ -136,17 +83,17 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 	}
 	if (threadIdx.x == 0)
 	{
-		det = 1;
-		for (int i = 0; i < (N - 1); i++)
+		if (det == 1)
 		{
-			det *= sub_a[(N - 1) * i + i];
+			for (int i = 0; i < (N - 1); i++)
+			{
+				det *= sub_a[(N - 1) * i + i];
+			}
+			det = __double2int_rn(det);
 		}
-		det = __double2int_rn(det);
 	}
 	__syncthreads();
 	minor_algaddit[N * blockIdx.y + blockIdx.x] = det * pow(-1, blockIdx.x + blockIdx.y);
-	// __syncthreads();
-	// minor_algaddit[N * i + j] *= pow(-1, i + j);
 }
 
 __global__ void transpose_matrix(int *a, double *at)
