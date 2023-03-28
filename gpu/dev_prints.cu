@@ -10,6 +10,7 @@ __device__ void dev_print_matrix(double *a, int n)
 		}
 		printf("\n");
 	}
+	// printf("\n\n\n");
 }
 
 __device__ void dev_print_matrix(int *a)

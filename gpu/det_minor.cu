@@ -36,18 +36,18 @@
 // 	return ((int) round(det));
 // }
 
-__device__ void init_sub_a(double *a, double *sub_a, int r, int c)
-{
-	int idx_sub_a;
+// __device__ void init_sub_a(double *a, double *sub_a, int r, int c)
+// {
+// 	int idx_sub_a;
 
-	idx_sub_a = 0;
-	for (int i = 0; i < N; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			if (i == r || j == c)
-				continue;
-			sub_a[idx_sub_a++] = a[N * i + j];
-		}
-	}
-}
+// 	idx_sub_a = 0;
+// 	for (int i = 0; i < N; i++)
+// 	{
+// 		for (int j = 0; j < N; j++)
+// 		{
+// 			if (i == r || j == c)
+// 				continue;
+// 			sub_a[idx_sub_a++] = a[N * i + j];
+// 		}
+// 	}
+// }
