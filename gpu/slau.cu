@@ -1,14 +1,5 @@
 #include "slau.h"
 
-// __constant__ int const_n;
-
-__device__ int def_n(int n)
-{
-	// if (n == 0)
-	// 	return N;
-	// return const_n;
-}
-
 __global__ void search_det(double *a, double *det)
 {
 	__shared__ double divider;
@@ -100,18 +91,10 @@ __global__ void transpose_matrix(int *a, double *at)
 {
 	int a_idx = N * (blockDim.y * blockIdx.y + threadIdx.y) + blockDim.x * blockIdx.x + threadIdx.x;
 	if (a_idx >= SIZE)
-	{
-		// printf("a_idx = %d\n", a_idx);
 		return;
-	}
-	// else printf("ELSE a_idx = %d; blockIdx.x = %d; threadIdx.x = %d; blockIdx.y = %d; threadIdx.y = %d\n", a_idx, blockIdx.x, threadIdx.x, blockIdx.y, threadIdx.y);
 	int at_idx = N * (blockDim.x * blockIdx.x + threadIdx.x) + blockDim.y * blockIdx.y + threadIdx.y;
 	if (at_idx >= SIZE)
-	{
-		// printf("at_idx = %d; blockIdx.x = %d; threadIdx.x = %d; blockIdx.y = %d; threadIdx.y = %d\n", at_idx, blockIdx.x, threadIdx.x, blockIdx.y, threadIdx.y);
 		return;
-	}
-	// else printf("ELSE at_idx = %d; blockIdx.x = %d; threadIdx.x = %d; blockIdx.y = %d; threadIdx.y = %d\n", at_idx, blockIdx.x, threadIdx.x, blockIdx.y, threadIdx.y);
 	at[at_idx] = a[a_idx];
 }
 
@@ -123,8 +106,6 @@ __global__ void get_inverse_matrix(double *a, double *det)
 	int idx2 = N * (blockDim.x * blockIdx.x + threadIdx.x) + blockDim.y * blockIdx.y + threadIdx.y;
 	if (idx2 >= SIZE)
 		return;
-	// a[N * threadIdx.y + threadIdx.x] /= *det;
-	// printf("idx = %d\n", idx);
 	a[idx2] /= *det;
 }
 
@@ -132,16 +113,11 @@ __global__ void mult_matrix_to_vector(double *a, int *b, double *x)
 {
 	int i0 = N * (blockDim.y * blockIdx.y + threadIdx.y);
 	if (i0 >= SIZE)
-	{
-		// printf("blockDim.y = %d; blockIdx.y = %d; threadIdx.y = %d\n", blockDim.y, blockIdx.y, threadIdx.y);
 		return;
-	}
 	double sum = 0;
 
 	for (int k = 0; k < N; k++)
-	{
 		sum += a[i0 + k] * b[k];
-	}
 	int idx = blockDim.y * blockIdx.y + threadIdx.y;
 	x[idx] = sum;
 }
@@ -162,12 +138,10 @@ int	main()
 	int *host_minor_algaddit;
 	double host_det;
 	double *dev_a;
-	// double *dev_sub_a;
 	int *dev_b;
 	double *dev_x;
 	double *dev_det;
 	int *dev_minor_algaddit;
-	// int host_n;
 	int	int_size;
 	int double_size;
 	dim3 blocksPerGrid;
@@ -182,21 +156,17 @@ int	main()
 	host_print_matrix(host_a);
 	host_print_vector(host_b);
 
-	// host_n = host_get_n();
-	// printf("host_n = %d\n", host_n);
 	host_x = (double *) malloc(double_size * N);
 	host_minor_algaddit = (int *) malloc(int_size * SIZE);
 	host_det = 1;
 	host_init_dim3(&blocksPerGrid, &threadsPerBlock);
 
 	cudaMalloc(&dev_a, double_size * SIZE);
-	// cudaMalloc(&dev_sub_a, double_size * host_n * host_n);
 	cudaMalloc(&dev_b, int_size * N);
 	cudaMalloc(&dev_x, double_size * N);
 	cudaMalloc(&dev_det, double_size);
 	cudaMalloc(&dev_minor_algaddit, int_size * SIZE);
 
-	// cudaMemcpyToSymbol(const_n, &host_n, int_size, 0, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_det, &host_det, double_size, cudaMemcpyHostToDevice);
@@ -207,17 +177,10 @@ int	main()
 	if (host_det != 0)
 	{
 		cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
-		// search_minor_algaddit_matrix<<<dim3(N, N), host_n>>>(dev_a, dev_sub_a, dev_minor_algaddit);
-
-
-
 		search_minor_algaddit_matrix<<<dim3(N, N), dim3(N, N)>>>(dev_a, dev_minor_algaddit);
 		cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
 		printf("Матрица алгебраических дополнений\n");
 		host_print_matrix(host_minor_algaddit);
-
-
-
 		transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
 		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
 		printf("Транспонированная матрица\n");
@@ -239,7 +202,6 @@ int	main()
 	free(host_x);
 	free(host_minor_algaddit);
 	cudaFree(dev_a);
-	// cudaFree(dev_sub_a);
 	cudaFree(dev_b);
 	cudaFree(dev_x);
 	cudaFree(dev_det);

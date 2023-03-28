@@ -11,18 +11,6 @@ void host_check_cuda_error(const char *msg)
     }
 }
 
-int host_get_n()
-{
-	// int k;
-
-	// k = 1;
-	// for (int i = 1; i < SIZE; i += k)
-	// {
-	// 	k += 2;
-	// }
-	// return sqrt(SIZE - k);
-}
-
 void host_init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock)
 {
 	if (N <= BLOCK_N)
