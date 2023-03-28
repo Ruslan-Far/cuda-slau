@@ -1,7 +1,7 @@
 #ifndef SLAU_H
 # define SLAU_H
 
-# define N 3
+# define N 5
 # define SIZE N * N
 # define BLOCK_N 2
 

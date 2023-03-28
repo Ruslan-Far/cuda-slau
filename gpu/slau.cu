@@ -102,7 +102,7 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 	// 		minor_algaddit[N * i + j] *= pow(-1, i + j);
 	// 	}
 	// }
-	__shared__ double sub_a[2 * 2];
+	__shared__ double sub_a[(N - 1) * (N - 1)];
 
 	if (threadIdx.x == blockIdx.x || threadIdx.y == blockIdx.y)
 		return;
@@ -110,14 +110,55 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 		sub_a[N * threadIdx.y + threadIdx.x - (blockDim.y + 1) - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
 	else if (threadIdx.x < blockIdx.x && threadIdx.y < blockIdx.y)
 		sub_a[N * threadIdx.y + threadIdx.x - threadIdx.y] = a[N * threadIdx.y + threadIdx.x];
+		// sub_a[N * threadIdx.y + threadIdx.x - threadIdx.y - (blockIdx.x - blockIdx.y)] = a[N * threadIdx.y + threadIdx.x];
 	else if (threadIdx.x > blockIdx.x && threadIdx.y < blockIdx.y)
-		sub_a[abs((int) (N * threadIdx.y - threadIdx.x - (threadIdx.y - 1)))] = a[N * threadIdx.y + threadIdx.x];
+		// sub_a[abs((int) (N * threadIdx.y - threadIdx.x - (threadIdx.y - 1)))] = a[N * threadIdx.y + threadIdx.x];
+		// sub_a[N * threadIdx.y + threadIdx.x - (blockIdx.x + threadIdx.y + 1)] = a[N * threadIdx.y + threadIdx.x];
+		sub_a[N * threadIdx.y + threadIdx.x - (threadIdx.y + 1)] = a[N * threadIdx.y + threadIdx.x];
 	else
-		sub_a[abs((int) (N * (threadIdx.y - 1) + threadIdx.x - (threadIdx.y - 1)))] = a[N * threadIdx.y + threadIdx.x];
+		// sub_a[abs((int) (N * (threadIdx.y - 1) + threadIdx.x - (threadIdx.y - 1)))] = a[N * threadIdx.y + threadIdx.x];
+		// sub_a[N * threadIdx.y + threadIdx.x - (blockDim.y + threadIdx.x) - (blockIdx.x + threadIdx.y)] = a[N * threadIdx.y + threadIdx.x];
+		sub_a[N * threadIdx.y + threadIdx.x - blockDim.y - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
 	
 	__syncthreads();
-	if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 1 && threadIdx.y == 1)
-		dev_print_matrix(sub_a, const_n);
+	// 3 * 3
+	// if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 1 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 1 && blockIdx.y == 0 && threadIdx.x == 2 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 2 && blockIdx.y == 0 && threadIdx.x == 1 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 0 && blockIdx.y == 1 && threadIdx.x == 1 && threadIdx.y == 2)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 1 && blockIdx.y == 1 && threadIdx.x == 2 && threadIdx.y == 2)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 2 && blockIdx.y == 1 && threadIdx.x == 1 && threadIdx.y == 2)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 0 && blockIdx.y == 2 && threadIdx.x == 1 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 1 && blockIdx.y == 2 && threadIdx.x == 2 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 2 && blockIdx.y == 2 && threadIdx.x == 1 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+
+
+	// 2 * 2
+	// if (blockIdx.x == 1 && blockIdx.y == 1 && threadIdx.x == 0 && threadIdx.y == 0)
+	// 	dev_print_matrix(sub_a, N - 1);
+	
+	// 4 * 4
+	// if (blockIdx.x == 1 && blockIdx.y == 1 && threadIdx.x == 0 && threadIdx.y == 0)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 1 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 3 && blockIdx.y == 3 && threadIdx.x == 1 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+	// if (blockIdx.x == 2 && blockIdx.y == 3 && threadIdx.x == 1 && threadIdx.y == 1)
+	// 	dev_print_matrix(sub_a, N - 1);
+
+	// 5 * 5
+	if (blockIdx.x == 2 && blockIdx.y == 3 && threadIdx.x == 1 && threadIdx.y == 1)
+		dev_print_matrix(sub_a, N - 1);
 }
 
 __device__ void init_sub_a(double *a, double *sub_a, int r, int c)
@@ -205,10 +246,10 @@ __global__ void mult_matrix_to_vector(double *a, int *b, double *x)
 int	main()
 {
 	// double  host_a[SIZE] = {2, 3, 4, 1}; // det = -10
-	double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9}; // det = 2904
+	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9}; // det = 2904
 	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82}; // det = 8765568
 	// double host_a[SIZE] = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}; // det = 0
-	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1}; // det = -1047253641
+	double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1}; // det = -1047253641
 	// int host_b[N] = {8, 6};
 	// int host_b[N] = {8, 6, 17};
 	// int host_b[N] = {8, 6, 17, 7};
@@ -223,7 +264,7 @@ int	main()
 	double *dev_x;
 	double *dev_det;
 	int *dev_minor_algaddit;
-	int host_n;
+	// int host_n;
 	int	int_size;
 	int double_size;
 	dim3 blocksPerGrid;
@@ -238,8 +279,8 @@ int	main()
 	host_print_matrix(host_a);
 	// host_print_vector(host_b);
 
-	host_n = host_get_n();
-	printf("host_n = %d\n", host_n);
+	// host_n = host_get_n();
+	// printf("host_n = %d\n", host_n);
 	host_x = (double *) malloc(double_size * N);
 	host_minor_algaddit = (int *) malloc(int_size * SIZE);
 	host_det = 1;
@@ -252,7 +293,7 @@ int	main()
 	cudaMalloc(&dev_det, double_size);
 	cudaMalloc(&dev_minor_algaddit, int_size * SIZE);
 
-	cudaMemcpyToSymbol(const_n, &host_n, int_size, 0, cudaMemcpyHostToDevice);
+	// cudaMemcpyToSymbol(const_n, &host_n, int_size, 0, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
 	// cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_det, &host_det, double_size, cudaMemcpyHostToDevice);
