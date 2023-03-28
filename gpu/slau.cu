@@ -1,12 +1,12 @@
 #include "slau.h"
 
-__constant__ int const_n;
+// __constant__ int const_n;
 
 __device__ int def_n(int n)
 {
-	if (n == 0)
-		return N;
-	return const_n;
+	// if (n == 0)
+	// 	return N;
+	// return const_n;
 }
 
 // __device__ void transform_matrix(double *a, int n)
@@ -76,10 +76,6 @@ __global__ void search_det(double *a, double *det)
 			*det *= a[N * i + i];
 		}
 		*det = __double2int_rn(*det);
-
-		// int aa = 5;
-		// aa = abs(aa);
-		// printf("aa = %d\n", aa);
 	}
 }
 
@@ -103,94 +99,54 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 	// 	}
 	// }
 	__shared__ double sub_a[(N - 1) * (N - 1)];
+	__shared__ double divider;
+	__shared__ double det;
 
-	if (threadIdx.x == blockIdx.x || threadIdx.y == blockIdx.y)
+	if (!(threadIdx.x == blockIdx.x || threadIdx.y == blockIdx.y))
+	{
+		if (threadIdx.x > blockIdx.x && threadIdx.y > blockIdx.y)
+			sub_a[N * threadIdx.y + threadIdx.x - (blockDim.y + 1) - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
+		else if (threadIdx.x < blockIdx.x && threadIdx.y < blockIdx.y)
+			sub_a[N * threadIdx.y + threadIdx.x - threadIdx.y] = a[N * threadIdx.y + threadIdx.x];
+		else if (threadIdx.x > blockIdx.x && threadIdx.y < blockIdx.y)
+			sub_a[N * threadIdx.y + threadIdx.x - (threadIdx.y + 1)] = a[N * threadIdx.y + threadIdx.x];
+		else
+			sub_a[N * threadIdx.y + threadIdx.x - blockDim.y - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
+	}
+	if (threadIdx.x == N - 1 && threadIdx.y != 0)
 		return;
-	if (threadIdx.x > blockIdx.x && threadIdx.y > blockIdx.y)
-		sub_a[N * threadIdx.y + threadIdx.x - (blockDim.y + 1) - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
-	else if (threadIdx.x < blockIdx.x && threadIdx.y < blockIdx.y)
-		sub_a[N * threadIdx.y + threadIdx.x - threadIdx.y] = a[N * threadIdx.y + threadIdx.x];
-		// sub_a[N * threadIdx.y + threadIdx.x - threadIdx.y - (blockIdx.x - blockIdx.y)] = a[N * threadIdx.y + threadIdx.x];
-	else if (threadIdx.x > blockIdx.x && threadIdx.y < blockIdx.y)
-		// sub_a[abs((int) (N * threadIdx.y - threadIdx.x - (threadIdx.y - 1)))] = a[N * threadIdx.y + threadIdx.x];
-		// sub_a[N * threadIdx.y + threadIdx.x - (blockIdx.x + threadIdx.y + 1)] = a[N * threadIdx.y + threadIdx.x];
-		sub_a[N * threadIdx.y + threadIdx.x - (threadIdx.y + 1)] = a[N * threadIdx.y + threadIdx.x];
-	else
-		// sub_a[abs((int) (N * (threadIdx.y - 1) + threadIdx.x - (threadIdx.y - 1)))] = a[N * threadIdx.y + threadIdx.x];
-		// sub_a[N * threadIdx.y + threadIdx.x - (blockDim.y + threadIdx.x) - (blockIdx.x + threadIdx.y)] = a[N * threadIdx.y + threadIdx.x];
-		sub_a[N * threadIdx.y + threadIdx.x - blockDim.y - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
-	
 	__syncthreads();
-	// 3 * 3
-	// if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 1 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 1 && blockIdx.y == 0 && threadIdx.x == 2 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 2 && blockIdx.y == 0 && threadIdx.x == 1 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 0 && blockIdx.y == 1 && threadIdx.x == 1 && threadIdx.y == 2)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 1 && blockIdx.y == 1 && threadIdx.x == 2 && threadIdx.y == 2)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 2 && blockIdx.y == 1 && threadIdx.x == 1 && threadIdx.y == 2)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 0 && blockIdx.y == 2 && threadIdx.x == 1 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 1 && blockIdx.y == 2 && threadIdx.x == 2 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 2 && blockIdx.y == 2 && threadIdx.x == 1 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-
-
-	// 2 * 2
-	// if (blockIdx.x == 1 && blockIdx.y == 1 && threadIdx.x == 0 && threadIdx.y == 0)
-	// 	dev_print_matrix(sub_a, N - 1);
-	
-	// 4 * 4
-	// if (blockIdx.x == 1 && blockIdx.y == 1 && threadIdx.x == 0 && threadIdx.y == 0)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 0 && blockIdx.y == 0 && threadIdx.x == 1 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 3 && blockIdx.y == 3 && threadIdx.x == 1 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-	// if (blockIdx.x == 2 && blockIdx.y == 3 && threadIdx.x == 1 && threadIdx.y == 1)
-	// 	dev_print_matrix(sub_a, N - 1);
-
-	// 5 * 5
-	if (blockIdx.x == 2 && blockIdx.y == 3 && threadIdx.x == 1 && threadIdx.y == 1)
-		dev_print_matrix(sub_a, N - 1);
-}
-
-__device__ void init_sub_a(double *a, double *sub_a, int r, int c)
-{
-
-	// // sub_a[threadIdx.x] = a[N * (blockIdx.y + 1) + blockIdx.x + threadIdx.x + 1];
-	// if (threadIdx.x == blockIdx.x || threadIdx.y == blockIdx.y)
-	// 	return;
-	// if (threadIdx.x > blockIdx.x && threadIdx.y > blockIdx.y)
-	// 	// sub_a[N * threadIdx.y + threadIdx.x - (blockDim.y + 1) - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
-	// 	sub_a[N * (threadIdx.y - 1) + threadIdx.x - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
-	// else if (threadIdx.x < blockIdx.x && threadIdx.y < blockIdx.y)
-	// 	sub_a[N * threadIdx.y + threadIdx.x - threadIdx.y] = a[N * threadIdx.y + threadIdx.x];
-	// else if (threadIdx.x > blockIdx.x && threadIdx.y < blockIdx.y)
-	// 	sub_a[N * threadIdx.y + threadIdx.x - 1] = a[N * threadIdx.y + threadIdx.x];
-	// else
-	// 	sub_a[N * (threadIdx.y - 1) + threadIdx.x - 1] = a[N * threadIdx.y + threadIdx.x];
-
-
-
-	// int idx_sub_a;
-
-	// idx_sub_a = 0;
-	// for (int i = 0; i < N; i++)
-	// {
-	// 	for (int j = 0; j < N; j++)
-	// 	{
-	// 		if (i == r || j == c)
-	// 			continue;
-	// 		sub_a[idx_sub_a++] = a[N * i + j];
-	// 	}
-	// }
+	for (int k = 0; k < (N - 1) - 1; k++)
+	{
+		if (threadIdx.x == k)
+		{
+			// if (blockIdx.x == 0 && a[(N - 1) * threadIdx.x + threadIdx.x] == 0)
+			// {
+			// 	*det = 0;
+			// 	return;
+			// }
+			// __syncthreads();
+			// if (*det == 0)
+			// 	return;
+			divider = sub_a[(N - 1) * (threadIdx.x + 1) + threadIdx.x] / sub_a[(N - 1) * threadIdx.x + threadIdx.x];
+		}
+		__syncthreads();
+		sub_a[(N - 1) * (k + 1) + threadIdx.x] -= divider * sub_a[(N - 1) * k + threadIdx.x];
+		__syncthreads();
+	}
+	if (threadIdx.x == 0)
+	{
+		det = 1;
+		for (int i = 0; i < (N - 1); i++)
+		{
+			det *= sub_a[(N - 1) * i + i];
+		}
+		det = __double2int_rn(det);
+	}
+	__syncthreads();
+	minor_algaddit[N * blockIdx.y + blockIdx.x] = det * pow(-1, blockIdx.x + blockIdx.y);
+	// __syncthreads();
+	// minor_algaddit[N * i + j] *= pow(-1, i + j);
 }
 
 __global__ void transpose_matrix(int *a, double *at)
@@ -245,12 +201,12 @@ __global__ void mult_matrix_to_vector(double *a, int *b, double *x)
 
 int	main()
 {
-	// double  host_a[SIZE] = {2, 3, 4, 1}; // det = -10
+	double  host_a[SIZE] = {2, 3, 4, 1}; // det = -10
 	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9}; // det = 2904
 	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82}; // det = 8765568
 	// double host_a[SIZE] = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}; // det = 0
-	double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1}; // det = -1047253641
-	// int host_b[N] = {8, 6};
+	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1}; // det = -1047253641
+	int host_b[N] = {8, 6};
 	// int host_b[N] = {8, 6, 17};
 	// int host_b[N] = {8, 6, 17, 7};
 	// double *host_a;
@@ -277,7 +233,7 @@ int	main()
 	// host_init_a(host_a);
 	// host_init_b(host_b);
 	host_print_matrix(host_a);
-	// host_print_vector(host_b);
+	host_print_vector(host_b);
 
 	// host_n = host_get_n();
 	// printf("host_n = %d\n", host_n);
@@ -295,7 +251,7 @@ int	main()
 
 	// cudaMemcpyToSymbol(const_n, &host_n, int_size, 0, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
-	// cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_det, &host_det, double_size, cudaMemcpyHostToDevice);
 
 	search_det<<<N - 1, N>>>(dev_a, dev_det);
@@ -309,24 +265,24 @@ int	main()
 
 
 		search_minor_algaddit_matrix<<<dim3(N, N), dim3(N, N)>>>(dev_a, dev_minor_algaddit);
-		// cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
-		// printf("Матрица алгебраических дополнений\n");
-		// host_print_matrix(host_minor_algaddit);
+		cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
+		printf("Матрица алгебраических дополнений\n");
+		host_print_matrix(host_minor_algaddit);
 
 
 
-	// 	transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
-	// 	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
-	// 	printf("Транспонированная матрица\n");
-	// 	host_print_matrix(host_a);
-	// 	get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
-	// 	cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
-	// 	printf("Обратная матрица\n");
-	// 	host_print_matrix(host_a);
-	// 	mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
-	// 	cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
-	// 	printf("Ответ\n");
-	// 	host_print_vector(host_x);
+		transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
+		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
+		printf("Транспонированная матрица\n");
+		host_print_matrix(host_a);
+		get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
+		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost);
+		printf("Обратная матрица\n");
+		host_print_matrix(host_a);
+		mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
+		cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
+		printf("Ответ\n");
+		host_print_vector(host_x);
 	}
 	else
 		printf("Невозможно решить данную СЛАУ\n");
