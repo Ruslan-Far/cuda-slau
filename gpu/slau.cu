@@ -45,7 +45,7 @@ __device__ int get_det(double *a, int n)
 	return ((int) round(det));
 }
 
-__global__ void search_det(double *a, int *det)
+__global__ void search_det(double *a, double *det)
 {
 	// *det = get_det(a, 0);
 
@@ -59,7 +59,7 @@ __global__ void search_det(double *a, int *det)
 		{
 			if (blockIdx.x == 0 && a[N * threadIdx.x + threadIdx.x] == 0)
 			{
-				printf("Невозможно решить данную СЛАУ, так как определитель = 0\n");
+				// printf("Невозможно решить данную СЛАУ, так как определитель = 0\n");
 				*det = 0;
 				return;
 			}
@@ -80,9 +80,8 @@ __global__ void search_det(double *a, int *det)
 		{
 			*det *= a[N * i + i];
 		}
-		*det = (int) (*det);
+		*det = __double2int_rn(*det);
 	}
-	
 }
 
 __global__ void search_minor_algaddit_matrix(double *a, double *sub_a, int *minor_algaddit)
@@ -125,7 +124,7 @@ __global__ void transpose_matrix(int *a, double *at)
 	at[at_idx] = a[a_idx];
 }
 
-__global__ void get_inverse_matrix(double *a, int *det)
+__global__ void get_inverse_matrix(double *a, double *det)
 {
 	int idx = N * (blockDim.y * blockIdx.y + threadIdx.y) + blockDim.x * blockIdx.x + threadIdx.x;
 	if (idx >= SIZE)
@@ -158,23 +157,24 @@ __global__ void mult_matrix_to_vector(double *a, int *b, double *x)
 
 int	main()
 {
-	// double  host_a[SIZE] = {2, 3, 4, 1};
-	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9};
-	double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82};
-	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1};
+	// double  host_a[SIZE] = {2, 3, 4, 1}; // det = -10
+	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9}; // det = 2904
+	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82}; // det = 8765568
+	double host_a[SIZE] = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}; // det = 0
+	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1}; // det = -1047253641
 	// int host_b[N] = {8, 6};
 	// int host_b[N] = {8, 6, 17};
-	int host_b[N] = {8, 6, 17, 7};
+	// int host_b[N] = {8, 6, 17, 7};
 	// double *host_a;
 	// int *host_b;
 	double *host_x;
 	int *host_minor_algaddit;
-	int host_det;
+	double host_det;
 	double *dev_a;
 	double *dev_sub_a;
 	int *dev_b;
 	double *dev_x;
-	int *dev_det;
+	double *dev_det;
 	int *dev_minor_algaddit;
 	int host_n;
 	int	int_size;
@@ -189,7 +189,7 @@ int	main()
 	// host_init_a(host_a);
 	// host_init_b(host_b);
 	host_print_matrix(host_a);
-	host_print_vector(host_b);
+	// host_print_vector(host_b);
 
 	host_n = host_get_n();
 	host_x = (double *) malloc(double_size * N);
@@ -201,20 +201,20 @@ int	main()
 	cudaMalloc(&dev_sub_a, double_size * host_n);
 	cudaMalloc(&dev_b, int_size * N);
 	cudaMalloc(&dev_x, double_size * N);
-	cudaMalloc(&dev_det, int_size);
+	cudaMalloc(&dev_det, double_size);
 	cudaMalloc(&dev_minor_algaddit, int_size * SIZE);
 
 	cudaMemcpyToSymbol(const_n, &host_n, int_size, 0, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_det, &host_det, int_size, cudaMemcpyHostToDevice);
+	// cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_det, &host_det, double_size, cudaMemcpyHostToDevice);
 
-	search_det<<<3, 4>>>(dev_a, dev_det);
+	search_det<<<N - 1, N>>>(dev_a, dev_det);
 	// search_det<<<1, 1>>>(dev_a, dev_det);
-	cudaMemcpy(&host_det, dev_det, int_size, cudaMemcpyDeviceToHost);
-	printf("Определитель матрицы = %d\n", host_det);
-	// if (host_det != 0)
-	// {
+	cudaMemcpy(&host_det, dev_det, double_size, cudaMemcpyDeviceToHost);
+	printf("Определитель матрицы = %f\n", host_det);
+	if (host_det != 0)
+	{
 	// 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
 	// 	search_minor_algaddit_matrix<<<1, 1>>>(dev_a, dev_sub_a, dev_minor_algaddit);
 	// 	cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost);
@@ -232,9 +232,9 @@ int	main()
 	// 	cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
 	// 	printf("Ответ\n");
 	// 	host_print_vector(host_x);
-	// }
-	// else
-	// 	printf("Невозможно решить данную СЛАУ\n");
+	}
+	else
+		printf("Невозможно решить данную СЛАУ\n");
 
 	// free(host_a);
 	// free(host_b);
