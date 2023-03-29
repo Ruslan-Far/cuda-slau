@@ -119,7 +119,6 @@ int	main()
 	double		*host_a;
 	int			*host_b;
 	double		*host_x;
-	int			*host_minor_algaddit; // clear
 	double		host_det;
 	double		*dev_a;
 	double		*dev_copy_a;
@@ -142,10 +141,11 @@ int	main()
 	host_b = (int *) malloc(int_size * N);
 	host_init_a(host_a);
 	host_init_b(host_b);
+	printf("Матрица A\n");
 	host_print_matrix(host_a);
+	printf("Вектор B\n");
 	host_print_vector(host_b);
 	host_x = (double *) malloc(double_size * N);
-	host_minor_algaddit = (int *) malloc(int_size * SIZE); // clear
 	host_det = 1;
 	host_init_dim3(&blocksPerGrid, &threadsPerBlock);
 
@@ -172,21 +172,11 @@ int	main()
 		cudaEventRecord(stop, 0);
 		cudaEventSynchronize(stop);
 	}
-	printf("Определитель матрицы = %f\n", host_det); // clear
 	if (host_det != 0)
 	{
 		search_minor_algaddit_matrix<<<dim3(N, N), dim3(N, N)>>>(dev_a, dev_minor_algaddit);
-		cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost); // clear
-		printf("Матрица алгебраических дополнений\n"); // clear
-		host_print_matrix(host_minor_algaddit); // clear
 		transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
-		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost); // clear
-		printf("Транспонированная матрица\n"); // clear
-		host_print_matrix(host_a); // clear
 		get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
-		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost); // clear
-		printf("Обратная матрица\n"); // clear
-		host_print_matrix(host_a); // clear
 		mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
 		cudaEventRecord(stop, 0);
 		cudaEventSynchronize(stop);
@@ -195,14 +185,13 @@ int	main()
 		host_print_vector(host_x);
 	}
 	else
-		printf("Невозможно решить данную СЛАУ\n");
+		printf("Невозможно решить данную СЛАУ, так определитель = 0\n");
 	cudaEventElapsedTime(&time, start, stop);
-	printf("Время выполнения: %.2f мс\n", time);
+	printf("Время решения данной СЛАУ с %d неизвестными: %.2f мс\n", N, time);
 
 	free(host_a);
 	free(host_b);
 	free(host_x);
-	free(host_minor_algaddit); // clear
 
 	cudaFree(dev_a);
 	cudaFree(dev_copy_a);
