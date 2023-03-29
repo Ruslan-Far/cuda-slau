@@ -4,9 +4,9 @@ __global__ void search_det(double *a, double *det)
 {
 	__shared__ double divider;
 
-	for (int k = 0; k < N - 1; k++)
+	for (int k = 0; k < N - 1 && blockIdx.x < N - 1 - k; k++)
 	{
-		if (threadIdx.x == k && blockIdx.x + k < N - 1)
+		if (threadIdx.x == k)
 		{
 			if (blockIdx.x == 0 && a[N * threadIdx.x + threadIdx.x] == 0)
 			{
@@ -22,8 +22,8 @@ __global__ void search_det(double *a, double *det)
 		__syncthreads();
 		if (*det == 0)
 			return;
-		if (blockIdx.x + k < N - 1)
-			a[N * (blockIdx.x + k + 1) + threadIdx.x] -= divider * a[N * k + threadIdx.x];
+		// if (blockIdx.x + k < N - 1)
+		a[N * (blockIdx.x + k + 1) + threadIdx.x] -= divider * a[N * k + threadIdx.x];
 		__syncthreads();
 	}
 	if (blockIdx.x == 0 && threadIdx.x == 0)
@@ -39,7 +39,7 @@ __global__ void search_det(double *a, double *det)
 __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 {
 	__shared__ double sub_a[(N - 1) * (N - 1)];
-	__shared__ double divider;
+	__shared__ double divider[N - 2];
 	__shared__ double det;
 
 	if (!(threadIdx.x == blockIdx.x || threadIdx.y == blockIdx.y))
@@ -53,43 +53,56 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 		else
 			sub_a[N * threadIdx.y + threadIdx.x - blockDim.y - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
 	}
-	if (threadIdx.x == N - 1 || threadIdx.y != 0)
+	if (threadIdx.x == N - 1 || threadIdx.y == N - 1)
 		return;
 	__syncthreads();
-	det = 1;
-	for (int k = 0; k < (N - 1) - 1; k++)
-	{
-		if (threadIdx.x == k)
+
+	// if (blockIdx.x == 1 && blockIdx.y == 0 && threadIdx.x == 2 && threadIdx.y == 0)
+	// 	dev_print_matrix(sub_a, N - 1);
+
+	// if (blockIdx.x == 1 && blockIdx.y == 0)
+	// {
+		det = 1;
+		for (int k = 0; k < (N - 1) - 1 && threadIdx.y < N - 2 - k; k++)
 		{
-			if (sub_a[(N - 1) * threadIdx.x + threadIdx.x] == 0)
+			// printf("threadIdx.x = %d; threadIdx.y = %d\n", threadIdx.x, threadIdx.y);
+			if (threadIdx.x == k)
 			{
-				printf("blockIdx.x = %d; blockIdx.y = %d\n", blockIdx.x, blockIdx.y);
-				det = 0;
-				// break;
+				if (threadIdx.y == 0 && sub_a[(N - 1) * threadIdx.x + threadIdx.x] == 0)
+				{
+					// printf("blockIdx.x = %d; blockIdx.y = %d\n", blockIdx.x, blockIdx.y);
+					det = 0;
+					// break;
+				}
+				__syncthreads();
+				// if (det == 0)
+				// 	break;
+				if (det != 0)
+					divider[threadIdx.y] = sub_a[(N - 1) * (threadIdx.y + threadIdx.x + 1) + threadIdx.x] / sub_a[(N - 1) * threadIdx.x + threadIdx.x];
 			}
-			// __syncthreads();
-			// if (det == 0)
-			// 	break;
-			if (det != 0)
-				divider = sub_a[(N - 1) * (threadIdx.x + 1) + threadIdx.x] / sub_a[(N - 1) * threadIdx.x + threadIdx.x];
+			__syncthreads();
+			if (det == 0)
+				break;
+			sub_a[(N - 1) * (threadIdx.y + k + 1) + threadIdx.x] -= divider[threadIdx.y] * sub_a[(N - 1) * k + threadIdx.x];
+			__syncthreads();
 		}
-		__syncthreads();
-		if (det == 0)
-			break;
-		sub_a[(N - 1) * (k + 1) + threadIdx.x] -= divider * sub_a[(N - 1) * k + threadIdx.x];
-		__syncthreads();
-	}
-	if (threadIdx.x == 0)
-	{
-		if (det == 1)
+		if (threadIdx.x == 0 && threadIdx.y == 0)
 		{
-			for (int i = 0; i < (N - 1); i++)
+			// printf("Changed sub_a\n");
+			// dev_print_matrix(sub_a, N - 1);
+			if (det == 1)
 			{
-				det *= sub_a[(N - 1) * i + i];
+				for (int i = 0; i < (N - 1); i++)
+				{
+					det *= sub_a[(N - 1) * i + i];
+				}
+				det = __double2int_rn(det);
+				// printf("det = %f\n", det);
 			}
-			det = __double2int_rn(det);
 		}
-	}
+	// }
+	if (threadIdx.x > 0 || threadIdx.y > 0)
+		return;
 	__syncthreads();
 	minor_algaddit[N * blockIdx.y + blockIdx.x] = det * pow(-1, blockIdx.x + blockIdx.y);
 }
