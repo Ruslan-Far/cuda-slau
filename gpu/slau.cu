@@ -11,14 +11,17 @@ __global__ void search_det(double *a, double *det)
 			if (blockIdx.x == 0 && a[N * threadIdx.x + threadIdx.x] == 0)
 			{
 				*det = 0;
-				return;
+				// return;
 			}
 			__syncthreads();
-			if (*det == 0)
-				return;
-			divider = a[N * (blockIdx.x + threadIdx.x + 1) + threadIdx.x] / a[N * threadIdx.x + threadIdx.x];
+			// if (*det == 0)
+			// 	return;
+			if (*det != 0)
+				divider = a[N * (blockIdx.x + threadIdx.x + 1) + threadIdx.x] / a[N * threadIdx.x + threadIdx.x];
 		}
 		__syncthreads();
+		if (*det == 0)
+			return;
 		if (blockIdx.x + k < N - 1)
 			a[N * (blockIdx.x + k + 1) + threadIdx.x] -= divider * a[N * k + threadIdx.x];
 		__syncthreads();
@@ -50,7 +53,7 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 		else
 			sub_a[N * threadIdx.y + threadIdx.x - blockDim.y - (threadIdx.y - 1)] = a[N * threadIdx.y + threadIdx.x];
 	}
-	if (threadIdx.x == N - 1 && threadIdx.y != 0)
+	if (threadIdx.x == N - 1 || threadIdx.y != 0)
 		return;
 	__syncthreads();
 	det = 1;
@@ -60,15 +63,19 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 		{
 			if (sub_a[(N - 1) * threadIdx.x + threadIdx.x] == 0)
 			{
+				printf("blockIdx.x = %d; blockIdx.y = %d\n", blockIdx.x, blockIdx.y);
 				det = 0;
-				break;
+				// break;
 			}
-			__syncthreads();
-			if (det == 0)
-				break;
-			divider = sub_a[(N - 1) * (threadIdx.x + 1) + threadIdx.x] / sub_a[(N - 1) * threadIdx.x + threadIdx.x];
+			// __syncthreads();
+			// if (det == 0)
+			// 	break;
+			if (det != 0)
+				divider = sub_a[(N - 1) * (threadIdx.x + 1) + threadIdx.x] / sub_a[(N - 1) * threadIdx.x + threadIdx.x];
 		}
 		__syncthreads();
+		if (det == 0)
+			break;
 		sub_a[(N - 1) * (k + 1) + threadIdx.x] -= divider * sub_a[(N - 1) * k + threadIdx.x];
 		__syncthreads();
 	}
@@ -115,7 +122,6 @@ __global__ void mult_matrix_to_vector(double *a, int *b, double *x)
 	if (i0 >= SIZE)
 		return;
 	double sum = 0;
-
 	for (int k = 0; k < N; k++)
 		sum += a[i0 + k] * b[k];
 	int idx = blockDim.y * blockIdx.y + threadIdx.y;
@@ -124,14 +130,17 @@ __global__ void mult_matrix_to_vector(double *a, int *b, double *x)
 
 int	main()
 {
-	double  host_a[SIZE] = {2, 3, 4, 1}; // det = -10
+	// double  host_a[SIZE] = {2, 3, 4, 1}; // det = -10
 	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9}; // det = 2904
 	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82}; // det = 8765568
 	// double host_a[SIZE] = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}; // det = 0
 	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1}; // det = -1047253641
-	int host_b[N] = {8, 6};
+	double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 0, 2, 3, 4, 12, 5, 6, 7, 8, 18, 9, 10, 11, 12, 77, 13, 14, 15, 16}; // det = -2332
+	// int host_b[N] = {8, 6};
 	// int host_b[N] = {8, 6, 17};
 	// int host_b[N] = {8, 6, 17, 7};
+	int host_b[N] = {8, 6, 17, 7, 9};
+
 	// double *host_a;
 	// int *host_b;
 	double *host_x;
@@ -211,3 +220,12 @@ int	main()
 
 	return 0;
 }
+
+
+
+// 2 * 2 - (1; 2)
+// 3 * 3 - ()
+// 4 * 4 - ()
+// 2) 4 * 4 - ()
+// 5 * 5 - ()
+// 2) 5 * 5 - ()
