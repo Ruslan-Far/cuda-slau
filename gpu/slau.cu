@@ -1,46 +1,38 @@
 #include "slau.h"
 
-__global__ void search_det(double *a, double *det)
+__global__ void	search_det(double *a, double *det)
 {
-	__shared__ double divider;
+	__shared__ double	divider;
 
 	for (int k = 0; k < N - 1 && blockIdx.x < N - 1 - k; k++)
 	{
 		if (threadIdx.x == k)
 		{
 			if (blockIdx.x == 0 && a[N * threadIdx.x + threadIdx.x] == 0)
-			{
 				*det = 0;
-				// return;
-			}
 			__syncthreads();
-			// if (*det == 0)
-			// 	return;
 			if (*det != 0)
 				divider = a[N * (blockIdx.x + threadIdx.x + 1) + threadIdx.x] / a[N * threadIdx.x + threadIdx.x];
 		}
 		__syncthreads();
 		if (*det == 0)
 			return;
-		// if (blockIdx.x + k < N - 1)
 		a[N * (blockIdx.x + k + 1) + threadIdx.x] -= divider * a[N * k + threadIdx.x];
 		__syncthreads();
 	}
 	if (blockIdx.x == 0 && threadIdx.x == 0)
 	{
 		for (int i = 0; i < N; i++)
-		{
 			*det *= a[N * i + i];
-		}
 		*det = __double2int_rn(*det);
 	}
 }
 
-__global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
+__global__ void	search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 {
-	__shared__ double sub_a[(N - 1) * (N - 1)];
-	__shared__ double divider[N - 1];
-	__shared__ double det;
+	__shared__ double	sub_a[(N - 1) * (N - 1)];
+	__shared__ double	divider[N - 1];
+	__shared__ double	det;
 
 	if (!(threadIdx.x == blockIdx.x || threadIdx.y == blockIdx.y))
 	{
@@ -56,58 +48,39 @@ __global__ void search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 	if (threadIdx.x == N - 1 || threadIdx.y == N - 1)
 		return;
 	__syncthreads();
-
-	// if (blockIdx.x == 1 && blockIdx.y == 0 && threadIdx.x == 2 && threadIdx.y == 0)
-	// 	dev_print_matrix(sub_a, N - 1);
-
-	// if (blockIdx.x == 1 && blockIdx.y == 0)
-	// {
-		det = 1;
-		for (int k = 0; k < (N - 1) - 1 && threadIdx.y < N - 2 - k; k++)
+	det = 1;
+	for (int k = 0; k < (N - 1) - 1 && threadIdx.y < N - 2 - k; k++)
+	{
+		if (threadIdx.x == k)
 		{
-			// printf("threadIdx.x = %d; threadIdx.y = %d\n", threadIdx.x, threadIdx.y);
-			if (threadIdx.x == k)
-			{
-				if (threadIdx.y == 0 && sub_a[(N - 1) * threadIdx.x + threadIdx.x] == 0)
-				{
-					// printf("blockIdx.x = %d; blockIdx.y = %d\n", blockIdx.x, blockIdx.y);
-					det = 0;
-					// break;
-				}
-				__syncthreads();
-				// if (det == 0)
-				// 	break;
-				if (det != 0)
-					divider[threadIdx.y] = sub_a[(N - 1) * (threadIdx.y + threadIdx.x + 1) + threadIdx.x] / sub_a[(N - 1) * threadIdx.x + threadIdx.x];
-			}
+			if (threadIdx.y == 0 && sub_a[(N - 1) * threadIdx.x + threadIdx.x] == 0)
+				det = 0;
 			__syncthreads();
-			if (det == 0)
-				break;
-			sub_a[(N - 1) * (threadIdx.y + k + 1) + threadIdx.x] -= divider[threadIdx.y] * sub_a[(N - 1) * k + threadIdx.x];
-			__syncthreads();
+			if (det != 0)
+				divider[threadIdx.y] = sub_a[(N - 1) * (threadIdx.y + threadIdx.x + 1) + threadIdx.x] / sub_a[(N - 1) * threadIdx.x + threadIdx.x];
 		}
-		if (threadIdx.x == 0 && threadIdx.y == 0)
+		__syncthreads();
+		if (det == 0)
+			break;
+		sub_a[(N - 1) * (threadIdx.y + k + 1) + threadIdx.x] -= divider[threadIdx.y] * sub_a[(N - 1) * k + threadIdx.x];
+		__syncthreads();
+	}
+	if (threadIdx.x == 0 && threadIdx.y == 0)
+	{
+		if (det == 1)
 		{
-			// printf("Changed sub_a\n");
-			// dev_print_matrix(sub_a, N - 1);
-			if (det == 1)
-			{
-				for (int i = 0; i < (N - 1); i++)
-				{
-					det *= sub_a[(N - 1) * i + i];
-				}
-				det = __double2int_rn(det);
-				// printf("det = %f\n", det);
-			}
+			for (int i = 0; i < (N - 1); i++)
+				det *= sub_a[(N - 1) * i + i];
+			det = __double2int_rn(det);
 		}
-	// }
+	}
 	if (threadIdx.x > 0 || threadIdx.y > 0)
 		return;
 	__syncthreads();
 	minor_algaddit[N * blockIdx.y + blockIdx.x] = det * pow(-1, blockIdx.x + blockIdx.y);
 }
 
-__global__ void transpose_matrix(int *a, double *at)
+__global__ void	transpose_matrix(int *a, double *at)
 {
 	int a_idx = N * (blockDim.y * blockIdx.y + threadIdx.y) + blockDim.x * blockIdx.x + threadIdx.x;
 	if (a_idx >= SIZE)
@@ -118,7 +91,7 @@ __global__ void transpose_matrix(int *a, double *at)
 	at[at_idx] = a[a_idx];
 }
 
-__global__ void get_inverse_matrix(double *a, double *det)
+__global__ void	get_inverse_matrix(double *a, double *det)
 {
 	int idx = N * (blockDim.y * blockIdx.y + threadIdx.y) + blockDim.x * blockIdx.x + threadIdx.x;
 	if (idx >= SIZE)
@@ -129,7 +102,7 @@ __global__ void get_inverse_matrix(double *a, double *det)
 	a[idx2] /= *det;
 }
 
-__global__ void mult_matrix_to_vector(double *a, int *b, double *x)
+__global__ void	mult_matrix_to_vector(double *a, int *b, double *x)
 {
 	int i0 = N * (blockDim.y * blockIdx.y + threadIdx.y);
 	if (i0 >= SIZE)
@@ -143,49 +116,39 @@ __global__ void mult_matrix_to_vector(double *a, int *b, double *x)
 
 int	main()
 {
-	// double  host_a[SIZE] = {2, 3, 4, 1}; // det = -10
-	// double  host_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9}; // det = 2904
-	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82}; // det = 8765568
-	double host_a[SIZE] = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}; // det = 0
-	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1}; // det = -1047253641
-	// double host_a[SIZE] = {5, 3, 21, 7, 4, 47, 0, 2, 3, 4, 12, 5, 6, 7, 8, 18, 9, 10, 11, 12, 77, 13, 14, 15, 16}; // det = -2332
-	// int host_b[N] = {8, 6};
-	// int host_b[N] = {8, 6, 17};
-	int host_b[N] = {8, 6, 17, 7};
-	// int host_b[N] = {8, 6, 17, 7, 9};
-
-	// double *host_a;
-	// int *host_b;
-	double *host_x;
-	int *host_minor_algaddit; // clear
-	double host_det;
-	double *dev_a;
-	double *dev_copy_a;
-	int *dev_b;
-	double *dev_x;
-	double *dev_det;
-	int *dev_minor_algaddit;
-	int	int_size;
-	int double_size;
-	dim3 blocksPerGrid;
-	dim3 threadsPerBlock;
-	cudaEvent_t start;
-	cudaEvent_t stop;
-	float time;
+	double		*host_a;
+	int			*host_b;
+	double		*host_x;
+	int			*host_minor_algaddit; // clear
+	double		host_det;
+	double		*dev_a;
+	double		*dev_copy_a;
+	int			*dev_b;
+	double		*dev_x;
+	double		*dev_det;
+	int			*dev_minor_algaddit;
+	int			int_size;
+	int			double_size;
+	dim3		blocksPerGrid;
+	dim3		threadsPerBlock;
+	cudaEvent_t	start;
+	cudaEvent_t	stop;
+	float		time;
 
 	int_size = sizeof(int);
 	double_size = sizeof(double);
-	// host_a = (double *) malloc(double_size * SIZE);
-	// host_b = (int *) malloc(int_size * N);
-	// host_init_a(host_a);
-	// host_init_b(host_b);
+
+	host_a = (double *) malloc(double_size * SIZE);
+	host_b = (int *) malloc(int_size * N);
+	host_init_a(host_a);
+	host_init_b(host_b);
 	host_print_matrix(host_a);
 	host_print_vector(host_b);
-
 	host_x = (double *) malloc(double_size * N);
 	host_minor_algaddit = (int *) malloc(int_size * SIZE); // clear
 	host_det = 1;
 	host_init_dim3(&blocksPerGrid, &threadsPerBlock);
+
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
@@ -209,25 +172,21 @@ int	main()
 		cudaEventRecord(stop, 0);
 		cudaEventSynchronize(stop);
 	}
-	// printf("Определитель матрицы = %f\n", host_det); // clear
+	printf("Определитель матрицы = %f\n", host_det); // clear
 	if (host_det != 0)
 	{
-		// cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice); // clear
 		search_minor_algaddit_matrix<<<dim3(N, N), dim3(N, N)>>>(dev_a, dev_minor_algaddit);
-		// cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost); // clear
-		// printf("Матрица алгебраических дополнений\n"); // clear
-		// host_print_matrix(host_minor_algaddit); // clear
-		// cudaDeviceSynchronize();
+		cudaMemcpy(host_minor_algaddit, dev_minor_algaddit, int_size * SIZE, cudaMemcpyDeviceToHost); // clear
+		printf("Матрица алгебраических дополнений\n"); // clear
+		host_print_matrix(host_minor_algaddit); // clear
 		transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
-		// cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost); // clear
-		// printf("Транспонированная матрица\n"); // clear
-		// host_print_matrix(host_a); // clear
-		// cudaDeviceSynchronize();
+		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost); // clear
+		printf("Транспонированная матрица\n"); // clear
+		host_print_matrix(host_a); // clear
 		get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
-		// cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost); // clear
-		// printf("Обратная матрица\n"); // clear
-		// host_print_matrix(host_a); // clear
-		// cudaDeviceSynchronize();
+		cudaMemcpy(host_a, dev_a, double_size * SIZE, cudaMemcpyDeviceToHost); // clear
+		printf("Обратная матрица\n"); // clear
+		host_print_matrix(host_a); // clear
 		mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
 		cudaEventRecord(stop, 0);
 		cudaEventSynchronize(stop);
@@ -240,16 +199,18 @@ int	main()
 	cudaEventElapsedTime(&time, start, stop);
 	printf("Время выполнения: %.2f мс\n", time);
 
-	// free(host_a);
-	// free(host_b);
+	free(host_a);
+	free(host_b);
 	free(host_x);
 	free(host_minor_algaddit); // clear
+
 	cudaFree(dev_a);
 	cudaFree(dev_copy_a);
 	cudaFree(dev_b);
 	cudaFree(dev_x);
 	cudaFree(dev_det);
 	cudaFree(dev_minor_algaddit);
+
 	cudaEventDestroy(start);
 	cudaEventDestroy(stop);
 
@@ -257,12 +218,3 @@ int	main()
 
 	return 0;
 }
-
-
-
-// 2 * 2 - (1 2)
-// 3 * 3 - ()
-// 4 * 4 - ()
-// 2) 4 * 4 - ()
-// 5 * 5 - ()
-// 2) 5 * 5 - (0.226415 30.283019 39.277873 -206.404803 134.004288)
