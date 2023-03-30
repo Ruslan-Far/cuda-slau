@@ -7,6 +7,7 @@
 # include <stdio.h>
 # include <math.h>
 # include <stdlib.h>
+# include <sys/time.h>
 
 int		get_det(double *a, int n);
 void	search_det(double *a, int *det);

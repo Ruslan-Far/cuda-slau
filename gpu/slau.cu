@@ -169,11 +169,6 @@ int	main(void)
 	cudaEventRecord(start, 0);
 	search_det<<<N - 1, N>>>(dev_copy_a, dev_det);
 	cudaMemcpy(&host_det, dev_det, double_size, cudaMemcpyDeviceToHost);
-	if (host_det == 0)
-	{
-		cudaEventRecord(stop, 0);
-		cudaEventSynchronize(stop);
-	}
 	if (host_det != 0)
 	{
 		search_minor_algaddit_matrix<<<dim3(N, N), dim3(N, N)>>>(dev_a, dev_minor_algaddit);
@@ -187,7 +182,11 @@ int	main(void)
 		host_print_vector(host_x);
 	}
 	else
+	{
+		cudaEventRecord(stop, 0);
+		cudaEventSynchronize(stop);
 		printf("Невозможно решить данную СЛАУ, так как определитель = 0\n");
+	}
 	cudaEventElapsedTime(&time, start, stop);
 	printf("Время решения данной СЛАУ с %d неизвестными: %.2f мс\n", N, time);
 

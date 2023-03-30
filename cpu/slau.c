@@ -51,15 +51,17 @@ void	mult_matrix_to_vector(double *a, int *b, double *x)
 
 int	main(void)
 {
-	double	*a;
-	int		*b;
-	double	*x;
-	double	*copy_a;
-	double	*sub_a;
-	int		*minor_algaddit;
-	int		det;
-	int		int_size;
-	int		double_size;
+	double			*a;
+	int				*b;
+	double			*x;
+	double			*copy_a;
+	double			*sub_a;
+	int				*minor_algaddit;
+	int				det;
+	int				int_size;
+	int				double_size;
+	struct timeval	start;
+	struct timeval	stop;
 
 	int_size = sizeof(int);
 	double_size = sizeof(double);
@@ -80,6 +82,7 @@ int	main(void)
 	printf("Вектор B\n");
 	int_print_vector(b);
 
+	gettimeofday(&start, NULL);
 	search_det(copy_a, &det);
 	if (det != 0)
 	{
@@ -87,11 +90,16 @@ int	main(void)
 		transpose_matrix(minor_algaddit, a);
 		get_inverse_matrix(a, det);
 		mult_matrix_to_vector(a, b, x);
+		gettimeofday(&stop, NULL);
 		printf("Ответ\n");
 		print_vector(x);
 	}
 	else
+	{
+		gettimeofday(&stop, NULL);
 		printf("Невозможно решить данную СЛАУ, так как определитель = 0\n");
+	}
+	printf("Время решения данной СЛАУ с %d неизвестными: %.2f мс\n", N, (double) ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec) / 1000);
 
 	free(a);
 	free(b);
