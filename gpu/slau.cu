@@ -104,13 +104,13 @@ __global__ void	get_inverse_matrix(double *a, double *det)
 
 __global__ void	mult_matrix_to_vector(double *a, int *b, double *x)
 {
-	int i0 = N * (blockDim.y * blockIdx.y + threadIdx.y);
+	int i0 = N * (blockDim.x * blockIdx.x + threadIdx.x);
 	if (i0 >= SIZE)
 		return;
 	double sum = 0;
 	for (int k = 0; k < N; k++)
 		sum += a[i0 + k] * b[k];
-	int idx = blockDim.y * blockIdx.y + threadIdx.y;
+	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	x[idx] = sum;
 }
 
@@ -177,7 +177,7 @@ int	main()
 		search_minor_algaddit_matrix<<<dim3(N, N), dim3(N, N)>>>(dev_a, dev_minor_algaddit);
 		transpose_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_minor_algaddit, dev_a);
 		get_inverse_matrix<<<blocksPerGrid, threadsPerBlock>>>(dev_a, dev_det);
-		mult_matrix_to_vector<<<dim3(1, blocksPerGrid.y), dim3(1, threadsPerBlock.y)>>>(dev_a, dev_b, dev_x);
+		mult_matrix_to_vector<<<blocksPerGrid.x, threadsPerBlock.x>>>(dev_a, dev_b, dev_x);
 		cudaEventRecord(stop, 0);
 		cudaEventSynchronize(stop);
 		cudaMemcpy(host_x, dev_x, double_size * N, cudaMemcpyDeviceToHost);
