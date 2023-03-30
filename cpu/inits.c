@@ -6,10 +6,14 @@ void	init_a(double *a)
 	{
 		a[i] = rand();
 		if (a[i] > 100000)
-		{
 			a[i] = round(a[i] / 100000000);
-		}
 	}
+}
+
+void	init_b(int *b)
+{
+	for (int i = 0; i < N; i++)
+		b[i] = N - i;
 }
 
 void	init_sub_a(double *a, double *sub_a, int r, int c)
@@ -28,10 +32,8 @@ void	init_sub_a(double *a, double *sub_a, int r, int c)
 	}
 }
 
-void	init_b(int *b)
+void	copy(double *copy_a, double *a)
 {
 	for (int i = 0; i < N; i++)
-	{
-		b[i] = N - i;
-	}
+		copy_a[i] = a[i];
 }

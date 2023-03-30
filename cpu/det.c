@@ -1,6 +1,6 @@
 #include "slau.h"
 
-static void	transform_matrix(double *a, int n)
+static int	transform_matrix(double *a, int n)
 {
 	double divider;
 
@@ -8,27 +8,31 @@ static void	transform_matrix(double *a, int n)
 	{
 		for (int i = k; i < n - 1; i++)
 		{
+			if (a[n * k + k] == 0)
+				return 0;
+			// printf("a[n * k + k] = %f\n", a[n * k + k]);
 			divider = a[n * (i + 1) + k] / a[n * k + k];
-			for (int j = 0; j < n; j++)
+			for (int j = 0; j < n - k; j++)
 			{
+				// printf("n * (i + 1) + k + j = %d\n", n * (i + 1) + k + j);
 				a[n * (i + 1) + k + j] -= divider * a[n * k + k + j];
 			}
 		}
 	}
+	return 1;
 }
 
 int	get_det(double *a, int n)
 {
 	double det;
 
-	transform_matrix(a, n);
-	// print_matrix(a, n);
-	det = 1;
+	det = transform_matrix(a, n);
+	if (det == 0)
+		return 0;
 	for (int i = 0; i < n; i++)
 	{
 		det *= a[n * i + i];
 	}
-	// printf("det = %d\n", (int) round(det));
 	return ((int) round(det));
 }
 

@@ -21,34 +21,58 @@ void	search_minor_algaddit_matrix(double *a, double *sub_a, int *minor_algaddit)
 
 void	transpose_matrix(int *a, double *at)
 {
-
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+			at[N * j + i] = a[N * i + j];
+	}
 }
 
 void	get_inverse_matrix(double *a, int det)
 {
-
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+			a[N * i + j] /= det;
+	}
 }
 
 void	mult_matrix_to_vector(double *a, int *b, double *x)
 {
+	double	sum;
 
+	for (int i = 0; i < N; i++)
+	{
+		sum = 0;
+		for (int j = 0; j < N; j++)
+			sum += a[N * i + j] * b[j];
+		x[i] = sum;
+	}
 }
 
 
 int	main(void)
 {
-	double  a[SIZE] = {2, 3, 4, 1};
+	// double  a[SIZE] = {2, 3, 4, 1};
 	// double  a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9};
 	// double a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82};
+	// double a[SIZE] = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
 	// double a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1};
-	int b[N] = {8, 6};
+	double a[SIZE] = {5, 3, 21, 7, 4, 47, 0, 2, 3, 4, 12, 5, 6, 7, 8, 18, 9, 10, 11, 12, 77, 13, 14, 15, 16};
+	// int b[N] = {8, 6};
 	// int b[N] = {8, 6, 17};
 	// int b[N] = {8, 6, 17, 7};
+	int b[N] = {8, 6, 17, 7, 9};
 
 	// double	*a;
 	// double	*b;
 	double	*x;
-	double  copy_a[SIZE] = {2, 3, 4, 1};
+	// double  copy_a[SIZE] = {2, 3, 4, 1};
+	// double  copy_a[SIZE] = {1, -2, 3, 4, 90, 6, -7, 8, 9};
+	// double  copy_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82};
+	// double  copy_a[SIZE] = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+	// double	copy_a[SIZE] = {5, 3, 21, 7, 4, 47, 12, 18, 77, 45, 3, 1, -6, 90, 34, -82, -103, 71, 51, 21, 33, -367, 16, 2, 1};
+	double	copy_a[SIZE] = {5, 3, 21, 7, 4, 47, 0, 2, 3, 4, 12, 5, 6, 7, 8, 18, 9, 10, 11, 12, 77, 13, 14, 15, 16};
 	// double	*copy_a;
 	double	*sub_a;
 	int		*minor_algaddit;
@@ -69,12 +93,11 @@ int	main(void)
 	// init_a(a);
 	// init_b(b);
 	// copy(copy_a, a);
-	det = 1;
 
 	printf("Матрица A\n");
 	print_matrix(a);
 	printf("Вектор B\n");
-	print_vector(b);
+	int_print_vector(b);
 
 	search_det(copy_a, &det);
 	printf("Определитель матрицы = %d\n", det);
@@ -83,15 +106,15 @@ int	main(void)
 		search_minor_algaddit_matrix(a, sub_a, minor_algaddit);
 		printf("Матрица алгебраических дополнений\n");
 		int_print_matrix(minor_algaddit);
-		// transpose_matrix(minor_algaddit, a);
-		// printf("Транспонированная матрица\n");
-		// print_matrix(a);
-		// get_inverse_matrix(a, det);
-		// printf("Обратная матрица\n");
-		// print_matrix(a);
-		// mult_matrix_to_vector(a, b, x);
-		// printf("Ответ\n");
-		// print_vector(x);
+		transpose_matrix(minor_algaddit, a);
+		printf("Транспонированная матрица\n");
+		print_matrix(a);
+		get_inverse_matrix(a, det);
+		printf("Обратная матрица\n");
+		print_matrix(a);
+		mult_matrix_to_vector(a, b, x);
+		printf("Ответ\n");
+		print_vector(x);
 	}
 	else
 		printf("Невозможно решить данную СЛАУ, так как определитель = 0\n");
