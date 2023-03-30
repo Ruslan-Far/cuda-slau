@@ -185,7 +185,7 @@ int	main()
 		host_print_vector(host_x);
 	}
 	else
-		printf("Невозможно решить данную СЛАУ, так определитель = 0\n");
+		printf("Невозможно решить данную СЛАУ, так как определитель = 0\n");
 	cudaEventElapsedTime(&time, start, stop);
 	printf("Время решения данной СЛАУ с %d неизвестными: %.2f мс\n", N, time);
 
