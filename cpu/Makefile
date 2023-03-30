@@ -6,7 +6,7 @@ HEADER		=	slau.h
 
 OBJ			=	${SRC:%.c=%.o}
 
-CC			=	gcc
+CC			=	nvcc
 RM			=	rm -f
 
 .PHONY	:		all clean fclean re

@@ -1,6 +1,6 @@
 #include "slau.h"
 
-void host_check_cuda_error(const char *msg)
+void	host_check_cuda_error(const char *msg)
 {
     cudaError_t err = cudaGetLastError();
 
@@ -11,7 +11,7 @@ void host_check_cuda_error(const char *msg)
     }
 }
 
-void host_init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock)
+void	host_init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock)
 {
 	if (N <= BLOCK_N)
 	{
@@ -28,7 +28,7 @@ void host_init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock)
 	}
 }
 
-void host_init_a(double *a)
+void	host_init_a(double *a)
 {
 	for (int i = 0; i < SIZE; i++)
 	{
@@ -38,10 +38,8 @@ void host_init_a(double *a)
 	}
 }
 
-void host_init_b(int *b)
+void	host_init_b(int *b)
 {
 	for (int i = 0; i < N; i++)
-	{
 		b[i] = N - i;
-	}
 }

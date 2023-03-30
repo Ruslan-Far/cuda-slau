@@ -7,7 +7,7 @@ void	init_a(double *a)
 		a[i] = rand();
 		if (a[i] > 100000)
 		{
-			// a[i] = round(a[i] / 100000000);
+			a[i] = round(a[i] / 100000000);
 		}
 	}
 }

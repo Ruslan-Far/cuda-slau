@@ -114,17 +114,17 @@ __global__ void	mult_matrix_to_vector(double *a, int *b, double *x)
 	x[idx] = sum;
 }
 
-int	main()
+int	main(void)
 {
 	double		*host_a;
 	int			*host_b;
 	double		*host_x;
 	double		host_det;
 	double		*dev_a;
-	double		*dev_copy_a;
 	int			*dev_b;
 	double		*dev_x;
 	double		*dev_det;
+	double		*dev_copy_a;
 	int			*dev_minor_algaddit;
 	int			int_size;
 	int			double_size;
@@ -139,13 +139,10 @@ int	main()
 
 	host_a = (double *) malloc(double_size * SIZE);
 	host_b = (int *) malloc(int_size * N);
+	host_x = (double *) malloc(double_size * N);
+
 	host_init_a(host_a);
 	host_init_b(host_b);
-	printf("Матрица A\n");
-	host_print_matrix(host_a);
-	printf("Вектор B\n");
-	host_print_vector(host_b);
-	host_x = (double *) malloc(double_size * N);
 	host_det = 1;
 	host_init_dim3(&blocksPerGrid, &threadsPerBlock);
 
@@ -153,16 +150,21 @@ int	main()
 	cudaEventCreate(&stop);
 
 	cudaMalloc(&dev_a, double_size * SIZE);
-	cudaMalloc(&dev_copy_a, double_size * SIZE);
 	cudaMalloc(&dev_b, int_size * N);
 	cudaMalloc(&dev_x, double_size * N);
 	cudaMalloc(&dev_det, double_size);
+	cudaMalloc(&dev_copy_a, double_size * SIZE);
 	cudaMalloc(&dev_minor_algaddit, int_size * SIZE);
 
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_copy_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_det, &host_det, double_size, cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_copy_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
+
+	printf("Матрица A\n");
+	host_print_matrix(host_a);
+	printf("Вектор B\n");
+	host_print_vector(host_b);
 
 	cudaEventRecord(start, 0);
 	search_det<<<N - 1, N>>>(dev_copy_a, dev_det);
@@ -194,10 +196,10 @@ int	main()
 	free(host_x);
 
 	cudaFree(dev_a);
-	cudaFree(dev_copy_a);
 	cudaFree(dev_b);
 	cudaFree(dev_x);
 	cudaFree(dev_det);
+	cudaFree(dev_copy_a);
 	cudaFree(dev_minor_algaddit);
 
 	cudaEventDestroy(start);
