@@ -10,13 +10,9 @@ static int	transform_matrix(double *a, int n)
 		{
 			if (a[n * k + k] == 0)
 				return 0;
-			// printf("a[n * k + k] = %f\n", a[n * k + k]);
 			divider = a[n * (i + 1) + k] / a[n * k + k];
 			for (int j = 0; j < n - k; j++)
-			{
-				// printf("n * (i + 1) + k + j = %d\n", n * (i + 1) + k + j);
 				a[n * (i + 1) + k + j] -= divider * a[n * k + k + j];
-			}
 		}
 	}
 	return 1;
@@ -30,9 +26,7 @@ int	get_det(double *a, int n)
 	if (det == 0)
 		return 0;
 	for (int i = 0; i < n; i++)
-	{
 		det *= a[n * i + i];
-	}
 	return ((int) round(det));
 }
 

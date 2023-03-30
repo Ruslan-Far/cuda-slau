@@ -35,5 +35,8 @@ void	init_sub_a(double *a, double *sub_a, int r, int c)
 void	copy(double *copy_a, double *a)
 {
 	for (int i = 0; i < N; i++)
-		copy_a[i] = a[i];
+	{
+		for (int j = 0; j < N; j++)
+			copy_a[N * i + j] = a[N * i + j];
+	}
 }
