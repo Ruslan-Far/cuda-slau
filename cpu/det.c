@@ -18,7 +18,7 @@ static int	transform_matrix(double *a, int n)
 	return 1;
 }
 
-int	get_det(double *a, int n)
+double	get_det(double *a, int n)
 {
 	double det;
 
@@ -27,10 +27,10 @@ int	get_det(double *a, int n)
 		return 0;
 	for (int i = 0; i < n; i++)
 		det *= a[n * i + i];
-	return ((int) round(det));
+	return det;
 }
 
-void	search_det(double *a, int *det)
+void	search_det(double *a, double *det)
 {
 	*det = get_det(a, N);
 }

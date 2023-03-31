@@ -51,11 +51,10 @@ __global__ void	search_det(double *a, double *det)
 	{
 		for (int i = 0; i < N; i++)
 			*det *= a[N * i + i];
-		*det = __double2int_rn(*det);
 	}
 }
 
-__global__ void	search_minor_algaddit_matrix(double *a, int *minor_algaddit)
+__global__ void	search_minor_algaddit_matrix(double *a, double *minor_algaddit)
 {
 	__shared__ double	sub_a[(N - 1) * (N - 1)];
 	__shared__ double	divider[N - 1];
@@ -101,13 +100,12 @@ __global__ void	search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 		{
 			for (int i = 0; i < (N - 1); i++)
 				det *= sub_a[(N - 1) * i + i];
-			det = __double2int_rn(det);
 		}
 	}
 	minor_algaddit[N * blockIdx.y + blockIdx.x] = det * pow(-1, blockIdx.x + blockIdx.y);
 }
 
-__global__ void	transpose_matrix(int *a, double *at)
+__global__ void	transpose_matrix(double *a, double *at)
 {
 	int a_idx = N * (blockDim.y * blockIdx.y + threadIdx.y) + blockDim.x * blockIdx.x + threadIdx.x;
 	if (a_idx >= SIZE)
@@ -129,7 +127,7 @@ __global__ void	get_inverse_matrix(double *a, double *det)
 	a[idx2] /= *det;
 }
 
-__global__ void	mult_matrix_to_vector(double *a, int *b, double *x)
+__global__ void	mult_matrix_to_vector(double *a, double *b, double *x)
 {
 	int i0 = N * (blockDim.x * blockIdx.x + threadIdx.x);
 	if (i0 >= SIZE)
@@ -144,16 +142,15 @@ __global__ void	mult_matrix_to_vector(double *a, int *b, double *x)
 int	main(void)
 {
 	double		*host_a;
-	int			*host_b;
+	double		*host_b;
 	double		*host_x;
 	double		host_det;
 	double		*dev_a;
-	int			*dev_b;
+	double		*dev_b;
 	double		*dev_x;
 	double		*dev_det;
 	double		*dev_copy_a;
-	int			*dev_minor_algaddit;
-	int			int_size;
+	double		*dev_minor_algaddit;
 	int			double_size;
 	dim3		blocksPerGrid;
 	dim3		threadsPerBlock;
@@ -161,11 +158,10 @@ int	main(void)
 	cudaEvent_t	stop;
 	float		time;
 
-	int_size = sizeof(int);
 	double_size = sizeof(double);
 
 	host_a = (double *) malloc(double_size * SIZE);
-	host_b = (int *) malloc(int_size * N);
+	host_b = (double *) malloc(double_size * N);
 	host_x = (double *) malloc(double_size * N);
 
 	host_init_a(host_a);
@@ -177,14 +173,14 @@ int	main(void)
 	cudaEventCreate(&stop);
 
 	cudaMalloc(&dev_a, double_size * SIZE);
-	cudaMalloc(&dev_b, int_size * N);
+	cudaMalloc(&dev_b, double_size * N);
 	cudaMalloc(&dev_x, double_size * N);
 	cudaMalloc(&dev_det, double_size);
 	cudaMalloc(&dev_copy_a, double_size * SIZE);
-	cudaMalloc(&dev_minor_algaddit, int_size * SIZE);
+	cudaMalloc(&dev_minor_algaddit, double_size * SIZE);
 
 	cudaMemcpy(dev_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_b, host_b, int_size * N, cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_b, host_b, double_size * N, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_det, &host_det, double_size, cudaMemcpyHostToDevice);
 	cudaMemcpy(dev_copy_a, host_a, double_size * SIZE, cudaMemcpyHostToDevice);
 

@@ -1,6 +1,6 @@
 #include "slau.h"
 
-void	search_minor_algaddit_matrix(double *a, double *sub_a, int *minor_algaddit)
+void	search_minor_algaddit_matrix(double *a, double *sub_a, double *minor_algaddit)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -12,7 +12,7 @@ void	search_minor_algaddit_matrix(double *a, double *sub_a, int *minor_algaddit)
 	}
 }
 
-void	transpose_matrix(int *a, double *at)
+void	transpose_matrix(double *a, double *at)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -21,7 +21,7 @@ void	transpose_matrix(int *a, double *at)
 	}
 }
 
-void	get_inverse_matrix(double *a, int det)
+void	get_inverse_matrix(double *a, double det)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -30,7 +30,7 @@ void	get_inverse_matrix(double *a, int det)
 	}
 }
 
-void	mult_matrix_to_vector(double *a, int *b, double *x)
+void	mult_matrix_to_vector(double *a, double *b, double *x)
 {
 	double	sum;
 
@@ -46,26 +46,24 @@ void	mult_matrix_to_vector(double *a, int *b, double *x)
 int	main(void)
 {
 	double			*a;
-	int				*b;
+	double			*b;
 	double			*x;
 	double			*copy_a;
 	double			*sub_a;
-	int				*minor_algaddit;
-	int				det;
-	int				int_size;
+	double			*minor_algaddit;
+	double			det;
 	int				double_size;
 	struct timeval	start;
 	struct timeval	stop;
 
-	int_size = sizeof(int);
 	double_size = sizeof(double);
 
 	a = (double *) malloc(double_size * SIZE);
-	b = (int *) malloc(int_size * N);
+	b = (double *) malloc(double_size * N);
 	x = (double *) malloc(double_size * N);
 	copy_a = (double *) malloc(double_size * SIZE);
 	sub_a = (double *) malloc(double_size * (N - 1) * (N - 1));
-	minor_algaddit = (int *) malloc(int_size * SIZE);
+	minor_algaddit = (double *) malloc(double_size * SIZE);
 
 	init_a(a);
 	init_b(b);
@@ -74,7 +72,7 @@ int	main(void)
 	printf("Матрица A\n");
 	print_matrix(a);
 	printf("Вектор B\n");
-	int_print_vector(b);
+	print_vector(b);
 
 	gettimeofday(&start, NULL);
 	search_det(copy_a, &det);

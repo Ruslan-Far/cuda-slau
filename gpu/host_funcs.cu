@@ -38,7 +38,7 @@ void	host_init_a(double *a)
 	}
 }
 
-void	host_init_b(int *b)
+void	host_init_b(double *b)
 {
 	for (int i = 0; i < N; i++)
 		b[i] = N - i;

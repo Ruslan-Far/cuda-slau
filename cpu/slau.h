@@ -9,11 +9,11 @@
 # include <stdlib.h>
 # include <sys/time.h>
 
-int		get_det(double *a, int n);
-void	search_det(double *a, int *det);
+double	get_det(double *a, int n);
+void	search_det(double *a, double *det);
 
 void	init_a(double *a);
-void	init_b(int *b);
+void	init_b(double *b);
 void	init_sub_a(double *a, double *sub_a, int r, int c);
 void	copy(double *copy_a, double *a);
 

@@ -11,7 +11,7 @@
 void			host_check_cuda_error(const char *msg);
 void			host_init_dim3(dim3 *blocksPerGrid, dim3 *threadsPerBlock);
 void			host_init_a(double *a);
-void			host_init_b(int *b);
+void			host_init_b(double *b);
 
 void			host_print_matrix(double *a);
 void			host_print_matrix(int *a);

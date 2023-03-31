@@ -10,7 +10,7 @@ void	init_a(double *a)
 	}
 }
 
-void	init_b(int *b)
+void	init_b(double *b)
 {
 	for (int i = 0; i < N; i++)
 		b[i] = N - i;
