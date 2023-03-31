@@ -1,7 +1,7 @@
 #ifndef SLAU_H
 # define SLAU_H
 
-# define N 2
+# define N 7
 # define SIZE N * N
 
 # include <stdio.h>

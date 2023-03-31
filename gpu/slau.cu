@@ -1,16 +1,43 @@
 #include "slau.h"
 
+__device__ volatile unsigned int	count;
+
+__device__ void	init_sync_whole_device(const int index)
+{
+	if (index == 0)
+		count = 0;
+	if (threadIdx.x == 0)
+		while (count != 0);
+	__syncthreads();
+}
+
+__device__ void	sync_whole_device(const int index, const int blocks)
+{
+	unsigned int	oldc;
+
+	__threadfence();
+	if (threadIdx.x == index)
+	{
+		oldc = atomicInc((unsigned int *) &count, blocks - 1);
+		__threadfence();
+		if (oldc != blocks - 1)
+			while (count != 0);
+	}
+	__syncthreads();
+}
+
 __global__ void	search_det(double *a, double *det)
 {
 	__shared__ double	divider;
 
-	for (int k = 0; k < N - 1 && blockIdx.x < N - 1 - k; k++)
+	init_sync_whole_device(threadIdx.x + blockIdx.x * blockDim.x);
+	for (int k = 0; k < N - 1 && blockIdx.x < N - 1 - k && threadIdx.x >= k; k++)
 	{
 		if (threadIdx.x == k)
 		{
 			if (blockIdx.x == 0 && a[N * threadIdx.x + threadIdx.x] == 0)
 				*det = 0;
-			__syncthreads();
+			sync_whole_device(k, gridDim.x - k);
 			if (*det != 0)
 				divider = a[N * (blockIdx.x + threadIdx.x + 1) + threadIdx.x] / a[N * threadIdx.x + threadIdx.x];
 		}
@@ -18,9 +45,9 @@ __global__ void	search_det(double *a, double *det)
 		if (*det == 0)
 			return;
 		a[N * (blockIdx.x + k + 1) + threadIdx.x] -= divider * a[N * k + threadIdx.x];
-		__syncthreads();
+		sync_whole_device(k, gridDim.x - k);
 	}
-	if (blockIdx.x == 0 && threadIdx.x == 0)
+	if (blockIdx.x == 0 && threadIdx.x == N - 1)
 	{
 		for (int i = 0; i < N; i++)
 			*det *= a[N * i + i];
@@ -49,7 +76,7 @@ __global__ void	search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 		return;
 	__syncthreads();
 	det = 1;
-	for (int k = 0; k < (N - 1) - 1 && threadIdx.y < N - 2 - k; k++)
+	for (int k = 0; k < (N - 1) - 1 && threadIdx.y < N - 2 - k && threadIdx.x >= k; k++)
 	{
 		if (threadIdx.x == k)
 		{
@@ -62,10 +89,13 @@ __global__ void	search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 		__syncthreads();
 		if (det == 0)
 			break;
+		__syncthreads();
 		sub_a[(N - 1) * (threadIdx.y + k + 1) + threadIdx.x] -= divider[threadIdx.y] * sub_a[(N - 1) * k + threadIdx.x];
 		__syncthreads();
 	}
-	if (threadIdx.x == 0 && threadIdx.y == 0)
+	if (threadIdx.x < N - 2 || threadIdx.y > 0)
+		return;
+	if (threadIdx.x == N - 2 && threadIdx.y == 0)
 	{
 		if (det == 1)
 		{
@@ -74,9 +104,6 @@ __global__ void	search_minor_algaddit_matrix(double *a, int *minor_algaddit)
 			det = __double2int_rn(det);
 		}
 	}
-	if (threadIdx.x > 0 || threadIdx.y > 0)
-		return;
-	__syncthreads();
 	minor_algaddit[N * blockIdx.y + blockIdx.x] = det * pow(-1, blockIdx.x + blockIdx.y);
 }
 

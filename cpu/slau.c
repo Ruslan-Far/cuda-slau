@@ -7,13 +7,8 @@ void	search_minor_algaddit_matrix(double *a, double *sub_a, int *minor_algaddit)
 		for (int j = 0; j < N; j++)
 		{
 			init_sub_a(a, sub_a, i, j);
-			minor_algaddit[N * i + j] = get_det(sub_a, N - 1);
+			minor_algaddit[N * i + j] = get_det(sub_a, N - 1) * pow(-1, i + j);
 		}
-	}
-	for (int i = 0; i < N; i++)
-	{
-		for (int j = 0; j < N; j++)
-			minor_algaddit[N * i + j] *= pow(-1, i + j);
 	}
 }
 
@@ -47,7 +42,6 @@ void	mult_matrix_to_vector(double *a, int *b, double *x)
 		x[i] = sum;
 	}
 }
-
 
 int	main(void)
 {
